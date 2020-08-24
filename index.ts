@@ -1,5 +1,3 @@
-type TODO = any;
-
 declare const machine:
   <D extends MachineDefinition.Of<D>>(definition: D) => MachineHandle.Of<D> & Tag<"Machine">;
 
@@ -12,17 +10,17 @@ namespace MachineDefinition {
     , states: { [state in string]: State<keyof Prop<D, "states">, unknown, unknown, unknown> }
     };
 
-type State<T, Ci, E, Co> =
-  | (
-    & StateBase<T, Ci, E, Co>
-    & { initial?: never
-      , states?: never
-      }
-    )
-  | (
-    & StateBase<T, Ci, E, Co>
-    & Tag<"ChildMachine">
-    );
+  type State<T, Ci, E, Co> =
+    | (
+      & StateBase<T, Ci, E, Co>
+      & { initial?: never
+        , states?: never
+        }
+      )
+    | (
+      & StateBase<T, Ci, E, Co>
+      & Tag<"ChildMachine">
+      );
 
   type StateBase<T, Ci, E, Co> =
     { on?:
@@ -40,7 +38,7 @@ namespace MachineHandle {
     transition: (event: Event<D>) => State<D>
   }
 
-  export type Event<D> = {
+  type Event<D> = {
     [S in StateIdentifier<D>]: {
       [E in keyof Transitions<D, S>]:
         HasTransition<D, S> extends true
@@ -56,7 +54,7 @@ namespace MachineHandle {
         ? P
         : never;
 
-  export type State<D> =
+  type State<D> =
     | {
         [S in StateIdentifier<D>]:
           { [E in keyof Transitions<D, S>]:
