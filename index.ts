@@ -108,7 +108,7 @@ type Cast<T, U> = T extends U ? T : U;
 const promiseMachine = machine({
   initial: { value: "pending", context: {} },
   states: {
-    "pending": {
+    pending: {
       on: {
         FULFILL: {
           target: "fulfilled",
@@ -124,8 +124,8 @@ const promiseMachine = machine({
         }
       }
     },
-    "fulfilled": {},
-    "rejected": {}
+    fulfilled: {},
+    rejected: {}
   }
 });
 
