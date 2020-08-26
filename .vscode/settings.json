@@ -1,5 +1,7 @@
 {
-    "cSpell.words": [
-        "scxml"
-    ]
+    "cSpell.words": ["scxml"],
+    "editor.rulers": [
+        120
+    ],
+    "typescript.tsdk": "node_modules\\typescript\\lib"
 }
