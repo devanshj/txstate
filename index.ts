@@ -9,7 +9,7 @@ export declare const Machine: {
   ): MachineHandle.Of<D, I>
 
   dignose: 
-    <D extends OE.DeepReadonly<D>>(defintion: D) => D.Show<MachineDefinition.Dignostics.Of<A.Cast<D, object>, {}>>
+    <D extends OE.InferNarrowest<D>>(defintion: D) => D.Show<MachineDefinition.Dignostics.Of<A.Cast<D, object>, {}>>
 }
 
 namespace MachineDefinition {
@@ -200,7 +200,15 @@ namespace OE {
         : T[K]
       : F;
 
-  export type DeepReadonly<T> = {
-    readonly [K in keyof T]: T[K] extends object ? DeepReadonly<T[K]> : string
+  export type InferNarrowest<T> = {
+    readonly [K in keyof T]:
+      T[K] extends {} ? InferNarrowest<T[K]> :
+      T[K] extends string ? string : // to force literal inference
+      T[K] extends number ? number : 
+      T[K] extends symbol ? symbol : 
+      T[K] extends undefined ? undefined : 
+      T[K] extends null ? null : 
+      T[K] extends ((...args: any[]) => any) ? ((...args: any[]) => any) :
+      never
   }
 }

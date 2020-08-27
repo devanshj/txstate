@@ -82,7 +82,6 @@ let test5 = Machine({
   states: { 1: {} }
 })
 let diagnosis5 = Machine.dignose({
-  // @ts-ignore weird
   initial: 1,
   states: { 1: {} }
 })
