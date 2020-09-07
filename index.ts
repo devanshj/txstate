@@ -183,12 +183,13 @@ namespace MachineDefinition {
       States extends A.Object = O.Prop<StateNode, "states", {}>,
       ChildStateIdentifier extends keyof States = keyof States
     > =
-      { hasChildStates:
-          ChildStateIdentifier extends any
-            ? TargetPath.WithRoot<States[ChildStateIdentifier], [...Accumulator, ChildStateIdentifier]>
-            : never
-      , else: Accumulator
-      }[A.IsNever<ChildStateIdentifier> extends B.False ? "hasChildStates" : "else"] 
+      | (A.Equals<Accumulator, []> extends B.True ? never : Accumulator)
+      | { hasChildStates:
+            ChildStateIdentifier extends any
+              ? TargetPath.WithRoot<States[ChildStateIdentifier], [...Accumulator, ChildStateIdentifier]>
+              : never
+        , else: never
+        }[A.IsNever<ChildStateIdentifier> extends B.False ? "hasChildStates" : "else"] 
 
     export namespace OfId {
       export type WithRoot<

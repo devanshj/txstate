@@ -70,3 +70,18 @@ Machine({
   // @ts-expect-error
   id: 1,
 })
+
+Machine({
+  initial: "a",
+  states: {
+    a: { on: { FOO: "c" } },
+    c: {
+      initial: "c1",
+      states: {
+        c1: {
+
+        }
+      }
+    }
+  }
+})
