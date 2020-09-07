@@ -120,3 +120,10 @@ let diagnosis7 = Machine.dignose({})
 Test.checks([
   Test.check<typeof diagnosis7, "All good!", Test.Pass>()
 ])
+
+Machine({
+  type: "parallel",
+  // @ts-expect-error
+  initial: "a",
+  states: { a: {}, b: {} }
+})
