@@ -1,4 +1,4 @@
-import { O, A, U, L, B, F } from "ts-toolbelt";
+import { O, A, U, L, B, F, I, N, Test } from "ts-toolbelt";
 
 export declare const Machine: {
   <D extends MachineDefinition.Of<D, {}>>(definition: D): MachineHandle.Of<D, {}>
@@ -8,7 +8,7 @@ export declare const Machine: {
   ): MachineHandle.Of<D, I>
 
   dignose: 
-    <D extends O.InferNarrowest<D>>(defintion: D) => D.Show<MachineDefinition.Dignostics.Of<A.Cast<D, object>, {}>>
+    <D extends O.InferNarrowest<D>>(defintion: D) => D.Show<MachineDefinition.Dignostics.Of<A.Cast<D, A.Object>, {}>>
 }
 
 namespace MachineDefinition {
@@ -27,11 +27,18 @@ namespace MachineDefinition {
       Definition extends A.Object,
       Implementations extends A.Object,
       Path extends PropertyKey[],
-      Self extends A.Object = A.Cast<O.Path<Definition, Path>, object>,
+      Cache =
+        { "TargetPath.OfId.WithRoot<Definition>": TargetPath.OfId.WithRoot<Definition>
+        , "TargetPath.WithRoot<Definition>": TargetPath.WithRoot<Definition>
+        , "IdMap.WithRoot<Definition>": IdMap.WithRoot<Definition>
+        },
+      Self extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
       Initial = O.Prop<Self, "initial">,
       States = O.Prop<Self, "states">,
       Type = O.Prop<Self, "type", "compound">,
-      Id = O.At<Self, "id">
+      Id = O.Prop<Self, "id">,
+      On = O.Prop<Self, "on">,
+      Delimiter = O.Prop<Self, "delimiter">,
     > =
       & (
         | & { type?:
@@ -40,10 +47,10 @@ namespace MachineDefinition {
               | "final"
               | "history"
             , states?:
-                & { [StateIdentifier in U.Intersect<keyof O.At<Self, "states">, string>]:
-                      StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>>
+                & { [StateIdentifier in U.Intersect<keyof States, string>]:
+                      StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>, Cache>
                   }
-                & { [_ in U.Filter<keyof O.At<Self, "states">, string>]?: never }
+                & { [_ in U.Filter<keyof States, string>]?: "state identifiers should be strings" }
             }
           & (B.Not<A.Equals<States, undefined>> extends B.True ? { initial: keyof States } : {})
         | { type: "atomic"
@@ -51,7 +58,16 @@ namespace MachineDefinition {
           , states?: never
           }
         )
-      & { id?: string
+      & { id?: Id.ForStateNode<Definition, Implementations, Path, Cache>
+        , on?: 
+            & { [EventIdentifier in U.Intersect<keyof On, string>]:
+                  Transition.ForStateNode<Definition, Implementations, Path, Cache>
+              }
+            & { [EventIdentifier in U.Filter<keyof On, string>]: "event identifiers should be strings" }
+        , delimiter?:
+            Delimiter extends string
+              ? Delimiter
+              : "Delimiter should be string"
         }
 
       export namespace Dignostics {
@@ -59,8 +75,8 @@ namespace MachineDefinition {
           Definition extends A.Object,
           Implementations extends A.Object,
           Path extends PropertyKey[],
-          Self extends A.Object = A.Cast<O.Path<Definition, Path>, object>
-        > = 
+          Self extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>
+        > =
           [
             ...Initial<Definition, Implementations, Path>,
             ...({
@@ -73,7 +89,7 @@ namespace MachineDefinition {
           Definition extends A.Object,
           Implementations extends A.Object,
           Path extends PropertyKey[],
-          StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, object>,
+          StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
           Initial = O.Prop<StateNode, "initial">,
           States = O.Prop<StateNode, "states">,
           Type = O.Prop<StateNode, "type", "compound">
@@ -99,7 +115,7 @@ namespace MachineDefinition {
             Definition extends A.Object,
             Implementations extends A.Object,
             Path extends PropertyKey[],
-            StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, object>,
+            StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
             States = O.Prop<StateNode, "states">,
             Type = O.Prop<StateNode, "type", "compound">
           > =
@@ -127,8 +143,104 @@ namespace MachineDefinition {
               ),
             ];
       }
-    
-    export type Any = A.Object;
+  }
+
+  export namespace Transition {
+
+    export type ForStateNode<
+        Definition extends A.Object,
+        Implementations extends A.Object,
+        Path extends PropertyKey[],
+        Cache extends A.Object,
+        StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
+        Delimiter extends string = A.Cast<O.Prop<StateNode, "delimiter", ".">, string>,
+        TargetPathInternal = 
+          | keyof O.Prop<StateNode, "states">
+          | `${Delimiter}${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, PropertyKey[]>, Delimiter>}`,
+        TargetPathExternal =
+          | L.Join<A.Cast<O.Prop<Cache, "TargetPath.OfId.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
+          | L.Join<A.Cast<O.Prop<Cache, "TargetPath.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
+      > =
+        | TargetPathInternal
+        | TargetPathExternal
+        | { target: TargetPathInternal
+          , internal?: boolean
+          }
+        | { target: TargetPathExternal
+          , internal?: false
+          }
+  }
+
+  export namespace TargetPath {
+
+    export type WithRoot<
+      StateNode extends A.Object,
+      Accumulator extends PropertyKey[] = [],
+      States extends A.Object = O.Prop<StateNode, "states", {}>,
+      ChildStateIdentifier extends keyof States = keyof States
+    > =
+      { hasChildStates:
+          ChildStateIdentifier extends any
+            ? TargetPath.WithRoot<States[ChildStateIdentifier], [...Accumulator, ChildStateIdentifier]>
+            : never
+      , else: Accumulator
+      }[A.IsNever<ChildStateIdentifier> extends B.False ? "hasChildStates" : "else"] 
+
+    export namespace OfId {
+      export type WithRoot<
+        StateNode extends A.Object,
+        Id = O.Prop<StateNode, "id", undefined>,
+        PathForId extends string = A.IsUndefined<Id> extends B.True ? never : `#${A.Cast<Id, string>}`,
+        States extends A.Object = O.Prop<StateNode, "states", {}>
+      > =
+        | [PathForId]
+        | { hasChildStates:  
+            | { [S in keyof States]: TargetPath.OfId.WithRoot<States[S]> }[keyof States]
+            | { hasId: 
+                [ PathForId
+                , ...(TargetPath.WithRoot<StateNode> extends infer X ? A.Cast<X, PropertyKey[]> : never)
+                ]
+              , else: never
+              }[A.IsNever<PathForId> extends B.False ? "hasId" : "else"]
+          , else: never
+          }[A.IsNever<keyof States> extends B.False ? "hasChildStates" : "else"]
+    }
+  }
+
+  export namespace IdMap {
+    export type WithRoot<
+        StateNode extends A.Object,
+        PathString extends string = "",
+        Id = O.Prop<StateNode, "id">, 
+        States extends A.Object = O.Prop<StateNode, "states", {}>
+      > = 
+        & (A.Equals<Id, undefined> extends B.True
+            ? {}
+            : { [_ in PathString]: Id }
+          )
+        & { hasChildStates:
+              U.IntersectOf<{
+                [S in keyof States]: IdMap.WithRoot<States[S], `${PathString}.${A.Cast<S, string>}`>
+              }[keyof States]>
+          , else: {}
+          }[A.IsNever<keyof States> extends B.False ? "hasChildStates" : "else"]
+  }
+
+  export namespace Id {
+    export type ForStateNode<
+      Definition extends A.Object,
+      Implementations extends A.Object,
+      Path extends PropertyKey[],
+      Cache extends A.Object,
+      StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
+      IdMap extends A.Object = A.Cast<O.Prop<Cache, "IdMap.WithRoot<Definition>">, A.Object>,
+      Id = O.Prop<StateNode, "id">
+    > =
+      Id extends string
+        ? U.IsUnit<O.KeyWithValue<IdMap, Id>> extends B.True
+          ? Id
+          : `Ids should be unique, "${Id}" is already used`
+        : "Ids should be strings"
   }
 
   export namespace Implementations {
@@ -174,15 +286,32 @@ declare module "Object/_api" {
       T[K] extends A.Function ? A.Function :
       never
   }
+  
+  export type KeyWithValue<O extends O.Object, V> =
+    { [K in keyof O]: O[K] extends V ? K : never }[keyof O]
 }
+
 
 declare module "Any/_api" {
   export type Function = (...args: any[]) => any;
   export type Tuple<T = any> = [any] | any[];
   export type TupleOrUnit<T = any> = T | Tuple<T>;
   export type Object = {}
+  export type IsUndefined<T> = A.Equals<T, undefined>
+  export type IsNever<T> = A.Equals<T, never>
 }
 
 declare module "List/_api" {
-  export type ConcatAll<L extends L.List> = L.Flatten<L, 1, '1'>;
+  export type ConcatAll<L extends L.List> =
+    L.Flatten<L, 1, '1'>;
+  
+  export type Join<L extends L.List, D extends string> =
+    L extends [] ? "" :
+    L extends [any] ? `${L[0]}` :
+    L extends [any, ...infer T] ? `${L[0]}${D}${Join<T, D>}` :
+    string;
+}
+
+declare module "Union/_api" {
+  export type IsUnit<U extends U.Union> = A.IsNever<U.Pop<U>>
 }

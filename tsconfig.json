@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "esnext",
     "module": "commonjs",
     "strict": true,
     "noImplicitAny": true,
     "esModuleInterop": true,
+    "skipLibCheck": true
   }
 }
