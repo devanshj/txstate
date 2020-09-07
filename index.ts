@@ -64,7 +64,7 @@ namespace MachineDefinition {
       & { id?: Id.Of<Definition, Implementations, L.Append<Path, "id">, Cache>
         , on?: 
             & { [EventIdentifier in U.Intersect<keyof On, string>]:
-                  Transition.ForStateNode<Definition, Implementations, Path, Cache>
+                  Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
               }
             & { [EventIdentifier in U.Filter<keyof On, string>]: "event identifiers should be strings" }
         , delimiter?:
@@ -150,12 +150,13 @@ namespace MachineDefinition {
 
   export namespace Transition {
 
-    export type ForStateNode<
+    export type Of<
         Definition extends A.Object,
         Implementations extends A.Object,
         Path extends PropertyKey[],
         Cache extends A.Object,
-        StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
+        Self = A.Cast<O.Path<Definition, Path>, A.Object>,
+        StateNode extends A.Object = A.Cast<O.Path<Definition, L.Pop<L.Pop<Path>>>, A.Object>,
         Delimiter extends string = A.Cast<O.Prop<StateNode, "delimiter", ".">, string>,
         TargetPathInternal = 
           | keyof O.Prop<StateNode, "states">
