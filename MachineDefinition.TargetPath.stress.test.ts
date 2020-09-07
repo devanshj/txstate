@@ -17,6 +17,11 @@ Machine({
               initial: "a4",
               states: {
                 a4: {
+                  on: {
+                    A: "#hmm.a8",
+                    // @ts-expect-error
+                    B: ""
+                  },
                   initial: "a5",
                   states: {
                     a5: {
@@ -28,6 +33,7 @@ Machine({
                             a7: {},
                             b2: {},
                             c2: {
+                              // @ts-expect-error
                               id: "hmm" as const,
                               initial: "a8",
                               states: {
@@ -61,6 +67,8 @@ Machine({
             a10: {},
             b6: {},
             c6: {
+              // @ts-expect-error
+              id: "hmm" as const,
               initial: "a11",
               states: {
                 a11: {
