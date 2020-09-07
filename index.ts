@@ -73,79 +73,79 @@ namespace MachineDefinition {
               : "Delimiter should be string"
         }
 
-      export namespace Dignostics {
-        export type Of<
-          Definition extends A.Object,
-          Implementations extends A.Object,
-          Path extends PropertyKey[],
-          Self extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>
-        > =
-          [
-            ...Initial<Definition, Implementations, Path>,
-            ...({
-              0: States<Definition, Implementations, Path>,
-              1: []
-            }[A.Equals<O.Prop<Self, "states", undefined>, undefined>])
-          ];
-        
-        export type Initial<
+    export namespace Dignostics {
+      export type Of<
+        Definition extends A.Object,
+        Implementations extends A.Object,
+        Path extends PropertyKey[],
+        Self extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>
+      > =
+        [
+          ...Initial<Definition, Implementations, Path>,
+          ...({
+            0: States<Definition, Implementations, Path>,
+            1: []
+          }[A.Equals<O.Prop<Self, "states", undefined>, undefined>])
+        ];
+      
+      export type Initial<
+        Definition extends A.Object,
+        Implementations extends A.Object,
+        Path extends PropertyKey[],
+        StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
+        Initial = O.Prop<StateNode, "initial">,
+        States = O.Prop<StateNode, "states">,
+        Type = O.Prop<StateNode, "type", "compound">
+      > =
+        B.And<A.Equals<Initial, undefined>, B.Not<A.Equals<States, undefined>>> extends B.True
+          ? [D.WithPath<Path, "initial state is required">] :
+        A.Equals<Initial, undefined> extends B.True
+          ? [] :
+        A.Equals<Type, "atomic"> extends B.True
+          ? [ D.WithPath<L.Append<Path, "initial">
+            , "The state node is atomic meaning no nested states, so can't have an initial property"> ] :
+        A.Equals<States, undefined> extends B.True
+          ? [ D.WithPath<L.Append<Path, "initial">
+            , "There are no states defined hence can't have an initial state">] : 
+        A.Contains<keyof States, number | symbol> extends B.True
+          ? [] :
+        B.Not<A.Contains<Initial, keyof States>> extends B.True
+          ? [ D.WithPath<L.Append<Path, "initial">
+            , ["state", O.At<StateNode, "initial">, "is not defined in states"]>] :
+        [];
+
+      export type States<
           Definition extends A.Object,
           Implementations extends A.Object,
           Path extends PropertyKey[],
           StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
-          Initial = O.Prop<StateNode, "initial">,
           States = O.Prop<StateNode, "states">,
           Type = O.Prop<StateNode, "type", "compound">
         > =
-          B.And<A.Equals<Initial, undefined>, B.Not<A.Equals<States, undefined>>> extends B.True
-            ? [D.WithPath<Path, "initial state is required">] :
-          A.Equals<Initial, undefined> extends B.True
-            ? [] :
-          A.Equals<Type, "atomic"> extends B.True
-            ? [ D.WithPath<L.Append<Path, "initial">
-              , "The state node is atomic meaning no nested states, so can't have an initial property"> ] :
-          A.Equals<States, undefined> extends B.True
-            ? [ D.WithPath<L.Append<Path, "initial">
-              , "There are no states defined hence can't have an initial state">] : 
-          A.Contains<keyof States, number | symbol> extends B.True
-            ? [] :
-          B.Not<A.Contains<Initial, keyof States>> extends B.True
-            ? [ D.WithPath<L.Append<Path, "initial">
-              , ["state", O.At<StateNode, "initial">, "is not defined in states"]>] :
-          [];
-
-        export type States<
-            Definition extends A.Object,
-            Implementations extends A.Object,
-            Path extends PropertyKey[],
-            StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
-            States = O.Prop<StateNode, "states">,
-            Type = O.Prop<StateNode, "type", "compound">
-          > =
-            A.Equals<States, undefined> extends B.True ? [] :
-            A.Equals<States, {}> extends B.True ? [] :
-            [
-              ...(
-                A.Contains<keyof States, number | symbol> extends B.True
-                  ? [D.WithPath<L.Append<Path, "states">, "state identifiers should be only strings">]
-                  : []
-              ),
-              ...(
-                B.And<A.Equals<Type, "atomic">, B.Not<A.Equals<States, undefined>>> extends B.True
-                  ? [ D.WithPath<L.Append<Path, "states">
-                    , "The state node is atomic meaning no nested states, so can't have an states property">]
-                  : []
-              ),
-              ...(
-                A.Equals<States, {}> extends B.True
-                  ? []
-                  : L.ConcatAll<U.ListOf<{
-                      [S in keyof States]:
-                        Of<Definition, Implementations, A.Cast<L.Concat<Path, ["states", S]>, PropertyKey[]>>
-                    }[keyof States]>>
-              ),
-            ];
-      }
+          A.Equals<States, undefined> extends B.True ? [] :
+          A.Equals<States, {}> extends B.True ? [] :
+          [
+            ...(
+              A.Contains<keyof States, number | symbol> extends B.True
+                ? [D.WithPath<L.Append<Path, "states">, "state identifiers should be only strings">]
+                : []
+            ),
+            ...(
+              B.And<A.Equals<Type, "atomic">, B.Not<A.Equals<States, undefined>>> extends B.True
+                ? [ D.WithPath<L.Append<Path, "states">
+                  , "The state node is atomic meaning no nested states, so can't have an states property">]
+                : []
+            ),
+            ...(
+              A.Equals<States, {}> extends B.True
+                ? []
+                : L.ConcatAll<U.ListOf<{
+                    [S in keyof States]:
+                      Of<Definition, Implementations, A.Cast<L.Concat<Path, ["states", S]>, PropertyKey[]>>
+                  }[keyof States]>>
+            ),
+          ];
+    }
   }
 
   export namespace Transition {
