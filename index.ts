@@ -61,7 +61,7 @@ namespace MachineDefinition {
           , states?: never
           }
         )
-      & { id?: Id.ForStateNode<Definition, Implementations, Path, Cache>
+      & { id?: Id.Of<Definition, Implementations, L.Append<Path, "id">, Cache>
         , on?: 
             & { [EventIdentifier in U.Intersect<keyof On, string>]:
                   Transition.ForStateNode<Definition, Implementations, Path, Cache>
@@ -230,19 +230,18 @@ namespace MachineDefinition {
   }
 
   export namespace Id {
-    export type ForStateNode<
+    export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
       Path extends PropertyKey[],
       Cache extends A.Object,
-      StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
-      IdMap extends A.Object = A.Cast<O.Prop<Cache, "IdMap.WithRoot<Definition>">, A.Object>,
-      Id = O.Prop<StateNode, "id">
+      Self = A.Cast<O.Path<Definition, Path>, A.Object>,
+      IdMap extends A.Object = A.Cast<O.Prop<Cache, "IdMap.WithRoot<Definition>">, A.Object>
     > =
-      Id extends string
-        ? U.IsUnit<O.KeyWithValue<IdMap, Id>> extends B.True
-          ? Id
-          : `Ids should be unique, "${Id}" is already used`
+      Self extends string
+        ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
+          ? Self
+          : `Ids should be unique, "${Self}" is already used`
         : "Ids should be strings"
   }
 
