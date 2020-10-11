@@ -180,7 +180,7 @@ namespace MachineDefinition {
       Self extends string
         ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
           ? Self
-          : `Ids should be unique, "${Self}" is already used`
+          : `Ids should be unique, '${Self}' is already used`
         : "Ids should be strings"
   }
 
