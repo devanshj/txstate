@@ -1,7 +1,7 @@
-import { O, A, U, L, B, F, I, N, Test } from "ts-toolbelt";
+import { O, A, U, L, B } from "ts-toolbelt";
 
 export declare const Machine: {
-  <D extends MachineDefinition.Of<D, {}>>(definition: D): MachineHandle.Of<D, {}>
+  <D extends MachineDefinition.Of<D, {}>>(definition: O.Identity<D>): MachineHandle.Of<D, {}>
   <D extends MachineDefinition.Of<D, I>, I extends MachineDefinition.Implementations.Of<D, I>>(
     definition: D,
     implementations: I
@@ -21,6 +21,15 @@ namespace MachineDefinition {
     export type Of<Definition extends A.Object, Implementations extends A.Object> =
       StateNode.Dignostics.Of<Definition, Implementations, []>
   }
+
+  export type FromCache<
+    Cache,
+    Key extends
+      | "TargetPath.OfId.WithRoot<Definition>"
+      | "TargetPath.WithRoot<Definition>"
+      | "IdMap.WithRoot<Definition>"
+  > =
+    O.Prop<Cache, Key>
 
   export namespace StateNode {
     export type Of<
@@ -72,6 +81,8 @@ namespace MachineDefinition {
               ? Delimiter
               : "Delimiter should be string"
         }
+      
+    export type Any = A.Object;
 
     export namespace Dignostics {
       export type Of<
@@ -158,21 +169,26 @@ namespace MachineDefinition {
         Self = A.Cast<O.Path<Definition, Path>, A.Object>,
         StateNode extends A.Object = A.Cast<O.Path<Definition, L.Pop<L.Pop<Path>>>, A.Object>,
         Delimiter extends string = A.Cast<O.Prop<StateNode, "delimiter", ".">, string>,
-        TargetPathInternal = 
+        TargetPathStringInternal = 
           | keyof O.Prop<StateNode, "states">
           | `${Delimiter}${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, PropertyKey[]>, Delimiter>}`,
-        TargetPathExternal =
-          | L.Join<A.Cast<O.Prop<Cache, "TargetPath.OfId.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
-          | L.Join<A.Cast<O.Prop<Cache, "TargetPath.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
+        TargetPathStringExternal =
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
       > =
-        | TargetPathInternal
-        | TargetPathExternal
-        | { target: TargetPathInternal
-          , internal?: boolean
-          }
-        | { target: TargetPathExternal
-          , internal?: false
-          }
+        | TargetPathStringInternal
+        | TargetPathStringExternal
+        | (
+          & (
+            | { target: TargetPathStringInternal
+              , internal?: boolean
+              }
+            | { target: TargetPathStringExternal
+              , internal?: false
+              }
+            )
+          & {}
+          )
   }
 
   export namespace TargetPath {
@@ -198,7 +214,7 @@ namespace MachineDefinition {
         PathForId extends string = A.IsUndefined<Id> extends B.True ? never : `#${A.Cast<Id, string>}`,
         States extends A.Object = O.Prop<StateNode, "states", {}>
       > =
-        | [PathForId]
+        | (A.IsNever<PathForId> extends B.True ? never : [PathForId])
         | { hasChildStates:  
             | { [S in keyof States]: TargetPath.OfId.WithRoot<States[S]> }[keyof States]
             | { hasId: 
@@ -210,6 +226,8 @@ namespace MachineDefinition {
           , else: never
           }[A.IsNever<keyof States> extends B.False ? "hasChildStates" : "else"]
     }
+
+    
   }
 
   export namespace IdMap {
@@ -225,7 +243,7 @@ namespace MachineDefinition {
           )
         & { hasChildStates:
               U.IntersectOf<{
-                [S in keyof States]: IdMap.WithRoot<States[S], `${PathString}.${A.Cast<S, string>}`>
+                [S in keyof States]: IdMap.WithRoot<States[S], PathString extends "" ? S : `${PathString}.${A.Cast<S, string>}`>
               }[keyof States]>
           , else: {}
           }[A.IsNever<keyof States> extends B.False ? "hasChildStates" : "else"]
@@ -238,7 +256,7 @@ namespace MachineDefinition {
       Path extends PropertyKey[],
       Cache extends A.Object,
       Self = A.Cast<O.Path<Definition, Path>, A.Object>,
-      IdMap extends A.Object = A.Cast<O.Prop<Cache, "IdMap.WithRoot<Definition>">, A.Object>
+      IdMap extends A.Object = A.Cast<FromCache<Cache, "IdMap.WithRoot<Definition>">, A.Object>
     > =
       Self extends string
         ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
@@ -281,7 +299,7 @@ declare module "Object/_api" {
 
   export type InferNarrowest<T> = {
     readonly [K in keyof T]:
-      T[K] extends A.Object ? InferNarrowest<T[K]> :
+      A.IsPlainObject<T[K]> extends B.True ? InferNarrowest<T[K]> :
       T[K] extends string ? string : // to force literal inference
       T[K] extends number ? number : 
       T[K] extends symbol ? symbol : 
@@ -293,6 +311,16 @@ declare module "Object/_api" {
   
   export type KeyWithValue<O extends O.Object, V> =
     { [K in keyof O]: O[K] extends V ? K : never }[keyof O]
+
+  export type DeepOmit<O extends O.Object, E extends PropertyKey> =
+    { [K in U.Exclude<keyof O, E>]:
+        O[K] extends object ? O.DeepOmit<O[K], E> : O[K]
+    }
+
+  export type Identity<O> =
+    { [K in keyof O]:
+        A.IsPlainObject<O[K]> extends B.True ? Identity<O[K]> : O[K]
+    }
 }
 
 
@@ -303,6 +331,12 @@ declare module "Any/_api" {
   export type Object = {}
   export type IsUndefined<T> = A.Equals<T, undefined>
   export type IsNever<T> = A.Equals<T, never>
+  export type IsPlainObject<T> =
+    T extends object ?
+      T extends A.Function
+        ? B.False
+        : B.True
+      : B.False;
 }
 
 declare module "List/_api" {
@@ -318,4 +352,20 @@ declare module "List/_api" {
 
 declare module "Union/_api" {
   export type IsUnit<U extends U.Union> = A.IsNever<U.Pop<U>>
+}
+
+namespace S {
+  export type String = string;
+  
+  export type DoesStartWith<S extends S.String, X extends S.String> =
+    S extends X ? B.True :
+    S extends `${infer H}${infer T}` ? H extends X ? B.True : B.False :
+    B.False
+  
+  export type DoesContain<S extends S.String, X extends S.String> =
+    S extends X ? B.True :
+    S extends `${infer Pr}${X}${infer Su}` ? B.True :
+    B.False
+
+  export type Shift<S extends S.String> = S extends `${infer H}${infer T}` ? T : "";
 }
