@@ -6,9 +6,6 @@ export declare const Machine: {
     definition: D,
     implementations: I
   ): MachineHandle.Of<D, I>
-
-  diagnose: 
-    <D extends O.InferNarrowest<D>>(defintion: D) => D.Show<MachineDefinition.Diagnostics.Of<A.Cast<D, A.Object>, {}>>
 }
 
 namespace MachineDefinition {
@@ -16,11 +13,6 @@ namespace MachineDefinition {
     & StateNode.Of<Definition, Implementations, []>
     & { context?: "TODO" };
 
-
-  export namespace Diagnostics {
-    export type Of<Definition extends A.Object, Implementations extends A.Object> =
-      StateNode.Diagnostics.Of<Definition, Implementations, []>
-  }
 
   export type FromCache<
     Cache,
@@ -84,79 +76,6 @@ namespace MachineDefinition {
       
     export type Any = A.Object;
 
-    export namespace Diagnostics {
-      export type Of<
-        Definition extends A.Object,
-        Implementations extends A.Object,
-        Path extends PropertyKey[],
-        Self extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>
-      > =
-        [
-          ...Initial<Definition, Implementations, Path>,
-          ...({
-            0: States<Definition, Implementations, Path>,
-            1: []
-          }[A.Equals<O.Prop<Self, "states", undefined>, undefined>])
-        ];
-      
-      export type Initial<
-        Definition extends A.Object,
-        Implementations extends A.Object,
-        Path extends PropertyKey[],
-        StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
-        Initial = O.Prop<StateNode, "initial">,
-        States = O.Prop<StateNode, "states">,
-        Type = O.Prop<StateNode, "type", "compound">
-      > =
-        B.And<A.Equals<Initial, undefined>, B.Not<A.Equals<States, undefined>>> extends B.True
-          ? [D.WithPath<Path, "initial state is required">] :
-        A.Equals<Initial, undefined> extends B.True
-          ? [] :
-        A.Equals<Type, "atomic"> extends B.True
-          ? [ D.WithPath<L.Append<Path, "initial">
-            , "The state node is atomic meaning no nested states, so can't have an initial property"> ] :
-        A.Equals<States, undefined> extends B.True
-          ? [ D.WithPath<L.Append<Path, "initial">
-            , "There are no states defined hence can't have an initial state">] : 
-        A.Contains<keyof States, number | symbol> extends B.True
-          ? [] :
-        B.Not<A.Contains<Initial, keyof States>> extends B.True
-          ? [ D.WithPath<L.Append<Path, "initial">
-            , ["state", O.At<StateNode, "initial">, "is not defined in states"]>] :
-        [];
-
-      export type States<
-          Definition extends A.Object,
-          Implementations extends A.Object,
-          Path extends PropertyKey[],
-          StateNode extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
-          States = O.Prop<StateNode, "states">,
-          Type = O.Prop<StateNode, "type", "compound">
-        > =
-          A.Equals<States, undefined> extends B.True ? [] :
-          A.Equals<States, {}> extends B.True ? [] :
-          [
-            ...(
-              A.Contains<keyof States, number | symbol> extends B.True
-                ? [D.WithPath<L.Append<Path, "states">, "state identifiers should be only strings">]
-                : []
-            ),
-            ...(
-              B.And<A.Equals<Type, "atomic">, B.Not<A.Equals<States, undefined>>> extends B.True
-                ? [ D.WithPath<L.Append<Path, "states">
-                  , "The state node is atomic meaning no nested states, so can't have an states property">]
-                : []
-            ),
-            ...(
-              A.Equals<States, {}> extends B.True
-                ? []
-                : L.ConcatAll<U.ListOf<{
-                    [S in keyof States]:
-                      Of<Definition, Implementations, A.Cast<L.Concat<Path, ["states", S]>, PropertyKey[]>>
-                  }[keyof States]>>
-            ),
-          ];
-    }
   }
 
   export namespace Transition {
@@ -269,20 +188,6 @@ namespace MachineDefinition {
     export type Of<Definition extends A.Object, Implementations extends A.Object> =
       {} // TODO;
   }
-}
-
-namespace D {
-  export type WithPath<P extends PropertyKey[], M> =
-    { error: M, at: A.Equals<P, []> extends B.True ? "root" : P }
-
-  export type Show<T> = 
-    A.Is<T, []> extends B.True
-      ? "All good!"
-      : { [I in keyof T]:
-            T[I] extends { error: infer M, at: infer P }
-              ? { error: M, at: P }
-              : never
-        };
 }
 
 namespace MachineHandle {
