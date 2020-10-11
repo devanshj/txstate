@@ -7,8 +7,8 @@ export declare const Machine: {
     implementations: I
   ): MachineHandle.Of<D, I>
 
-  dignose: 
-    <D extends O.InferNarrowest<D>>(defintion: D) => D.Show<MachineDefinition.Dignostics.Of<A.Cast<D, A.Object>, {}>>
+  diagnose: 
+    <D extends O.InferNarrowest<D>>(defintion: D) => D.Show<MachineDefinition.Diagnostics.Of<A.Cast<D, A.Object>, {}>>
 }
 
 namespace MachineDefinition {
@@ -17,9 +17,9 @@ namespace MachineDefinition {
     & { context?: "TODO" };
 
 
-  export namespace Dignostics {
+  export namespace Diagnostics {
     export type Of<Definition extends A.Object, Implementations extends A.Object> =
-      StateNode.Dignostics.Of<Definition, Implementations, []>
+      StateNode.Diagnostics.Of<Definition, Implementations, []>
   }
 
   export type FromCache<
@@ -84,7 +84,7 @@ namespace MachineDefinition {
       
     export type Any = A.Object;
 
-    export namespace Dignostics {
+    export namespace Diagnostics {
       export type Of<
         Definition extends A.Object,
         Implementations extends A.Object,

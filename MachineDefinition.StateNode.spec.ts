@@ -5,7 +5,7 @@ let test1 = Machine({
   initial: "a",
   states: { a: {} },
 });
-let diagnosis1 = Machine.dignose({
+let diagnosis1 = Machine.diagnose({
   initial: "a",
   states: { a: {} },
 })
@@ -19,7 +19,7 @@ let test2 = Machine({
   initial: "b",
   states: { a: {} }
 })
-let diagnosis2 = Machine.dignose({
+let diagnosis2 = Machine.diagnose({
   initial: "b",
   states: { a: {} }
 })
@@ -43,7 +43,7 @@ let test3 = Machine({
     }
   }
 })
-let diagnosis3 = Machine.dignose({
+let diagnosis3 = Machine.diagnose({
   initial: "a",
   states: {
     a: {
@@ -65,7 +65,7 @@ Test.checks([
 let test4 = Machine({
   states: { a: {} }
 })
-let diagnosis4 = Machine.dignose({
+let diagnosis4 = Machine.diagnose({
   states: { a: {} }
 })
 Test.checks([
@@ -81,7 +81,7 @@ let test5 = Machine({
   // @ts-expect-error
   states: { 1: {} }
 })
-let diagnosis5 = Machine.dignose({
+let diagnosis5 = Machine.diagnose({
   initial: 1,
   states: { 1: {} }
 })
@@ -99,7 +99,7 @@ let test6 = Machine({
   initial: "a",
   states: { a: {} }
 })
-let diagnosis6 = Machine.dignose({
+let diagnosis6 = Machine.diagnose({
   type: "atomic",
   initial: "a",
   states: { a: {} }
@@ -116,7 +116,7 @@ Test.checks([
 
 
 let test7 = Machine({})
-let diagnosis7 = Machine.dignose({})
+let diagnosis7 = Machine.diagnose({})
 Test.checks([
   Test.check<typeof diagnosis7, "All good!", Test.Pass>()
 ])
