@@ -231,7 +231,7 @@ declare module "Object/_api" {
 
 declare module "Any/_api" {
   export type Function = (...args: any[]) => any;
-  export type Tuple<T = any> = [any] | any[];
+  export type Tuple<T = any> = [T] | T[];
   export type TupleOrUnit<T = any> = T | Tuple<T>;
   export type Object = {}
   export type IsUndefined<T> = A.Equals<T, undefined>
