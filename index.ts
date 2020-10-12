@@ -54,7 +54,9 @@ namespace MachineDefinition {
                 & { [_ in U.Filter<keyof States, string>]?: "state identifiers should be strings" }
             }
           & (B.Not<A.Equals<States, undefined>> extends B.True
-              ? { initial: A.Equals<Type, "parallel"> extends B.True ? undefined : keyof States } 
+              ? A.Equals<Type, "parallel"> extends B.True
+                ? { initial?: undefined }
+                : { initial: keyof States }
               : {}
             )
         | { type: "atomic"
