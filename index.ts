@@ -1,7 +1,7 @@
 import { O, A, U, L, B } from "ts-toolbelt";
 
 export declare const Machine: {
-  <D extends MachineDefinition.Of<D, {}>>(definition: O.Identity<D>): MachineHandle.Of<D, {}>
+  <D extends MachineDefinition.Of<D, {}>>(definition: A.InferNarrowest<D>): MachineHandle.Of<D, {}>
   <D extends MachineDefinition.Of<D, I>, I extends MachineDefinition.Implementations.Of<D, I>>(
     definition: D,
     implementations: I
@@ -27,7 +27,7 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
-      Path extends PropertyKey[],
+      Path extends readonly PropertyKey[],
       Cache =
         { "TargetPath.OfId.WithRoot<Definition>": TargetPath.OfId.WithRoot<Definition>
         , "TargetPath.WithRoot<Definition>": TargetPath.WithRoot<Definition>
@@ -48,10 +48,9 @@ namespace MachineDefinition {
               | "final"
               | "history"
             , states?:
-                & { [StateIdentifier in U.Intersect<keyof States, string>]:
-                      StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>, Cache>
-                  }
-                & { [_ in U.Filter<keyof States, string>]?: "state identifiers should be strings" }
+                { [StateIdentifier in keyof States]:
+                    StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>, Cache>
+                }
             }
           & (B.Not<A.Equals<States, undefined>> extends B.True
               ? A.Equals<Type, "parallel"> extends B.True
@@ -66,10 +65,9 @@ namespace MachineDefinition {
         )
       & { id?: Id.Of<Definition, Implementations, L.Append<Path, "id">, Cache>
         , on?: 
-            & { [EventIdentifier in U.Intersect<keyof On, string>]:
-                  Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
-              }
-            & { [EventIdentifier in U.Filter<keyof On, string>]: "event identifiers should be strings" }
+            { [EventIdentifier in keyof On]:
+                Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
+            }
         , delimiter?:
             Delimiter extends string
               ? Delimiter
@@ -85,17 +83,17 @@ namespace MachineDefinition {
     export type Of<
         Definition extends A.Object,
         Implementations extends A.Object,
-        Path extends PropertyKey[],
+        Path extends readonly PropertyKey[],
         Cache extends A.Object,
         Self = A.Cast<O.Path<Definition, Path>, A.Object>,
         StateNode extends A.Object = A.Cast<O.Path<Definition, L.Pop<L.Pop<Path>>>, A.Object>,
         Delimiter extends string = A.Cast<O.Prop<StateNode, "delimiter", ".">, string>,
         TargetPathStringInternal = 
           | keyof O.Prop<StateNode, "states">
-          | `${Delimiter}${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, PropertyKey[]>, Delimiter>}`,
+          | `${Delimiter}${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, Delimiter>}`,
         TargetPathStringExternal =
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>">, PropertyKey[]>, Delimiter>
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, Delimiter>
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, Delimiter>
       > =
         | TargetPathStringInternal
         | TargetPathStringExternal
@@ -116,7 +114,7 @@ namespace MachineDefinition {
 
     export type WithRoot<
       StateNode extends A.Object,
-      Accumulator extends PropertyKey[] = [],
+      Accumulator extends readonly PropertyKey[] = [],
       States extends A.Object = O.Prop<StateNode, "states", {}>,
       ChildStateIdentifier extends keyof States = keyof States
     > =
@@ -140,7 +138,11 @@ namespace MachineDefinition {
             | { [S in keyof States]: TargetPath.OfId.WithRoot<States[S]> }[keyof States]
             | { hasId: 
                 [ PathForId
-                , ...(TargetPath.WithRoot<StateNode> extends infer X ? A.Cast<X, PropertyKey[]> : never)
+                , ...(
+                    TargetPath.WithRoot<StateNode> extends infer X
+                      ? A.IsNever<X> extends B.True ? [] : A.Cast<X, readonly PropertyKey[]>
+                      : never
+                  )
                 ]
               , else: never
               }[A.IsNever<PathForId> extends B.False ? "hasId" : "else"]
@@ -174,7 +176,7 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
-      Path extends PropertyKey[],
+      Path extends readonly PropertyKey[],
       Cache extends A.Object,
       Self = A.Cast<O.Path<Definition, Path>, A.Object>,
       IdMap extends A.Object = A.Cast<FromCache<Cache, "IdMap.WithRoot<Definition>">, A.Object>
@@ -203,18 +205,6 @@ declare module "Object/_api" {
         ? F
         : T[K]
       : F;
-
-  export type InferNarrowest<T> = {
-    readonly [K in keyof T]:
-      A.IsPlainObject<T[K]> extends B.True ? InferNarrowest<T[K]> :
-      T[K] extends string ? string : // to force literal inference
-      T[K] extends number ? number : 
-      T[K] extends symbol ? symbol : 
-      T[K] extends undefined ? undefined : 
-      T[K] extends null ? null : 
-      T[K] extends A.Function ? A.Function :
-      never
-  }
   
   export type KeyWithValue<O extends O.Object, V> =
     { [K in keyof O]: O[K] extends V ? K : never }[keyof O]
@@ -222,11 +212,6 @@ declare module "Object/_api" {
   export type DeepOmit<O extends O.Object, E extends PropertyKey> =
     { [K in U.Exclude<keyof O, E>]:
         O[K] extends object ? O.DeepOmit<O[K], E> : O[K]
-    }
-
-  export type Identity<O> =
-    { [K in keyof O]:
-        A.IsPlainObject<O[K]> extends B.True ? Identity<O[K]> : O[K]
     }
 }
 
@@ -239,11 +224,22 @@ declare module "Any/_api" {
   export type IsUndefined<T> = A.Equals<T, undefined>
   export type IsNever<T> = A.Equals<T, never>
   export type IsPlainObject<T> =
-    T extends object ?
-      T extends A.Function
-        ? B.False
-        : B.True
+    T extends object
+      ? T extends A.Function ? B.False :
+        T extends any[] ? B.False :
+        B.True
       : B.False;
+
+  export type InferObject<O> =
+    { [K in keyof O]: O[K] }
+
+  export type InferNarrowest<T> =
+    T extends any
+      ? ( T extends any[] ? readonly [...A.Cast<T, any[]>] :
+          A.IsPlainObject<T> extends B.True ? { readonly [K in keyof T]: InferNarrowest<T[K]> } :
+          T
+        )
+      : never
 }
 
 declare module "List/_api" {
@@ -251,9 +247,9 @@ declare module "List/_api" {
     L.Flatten<L, 1, '1'>;
   
   export type Join<L extends L.List, D extends string> =
-    L extends [] ? "" :
-    L extends [any] ? `${L[0]}` :
-    L extends [any, ...infer T] ? `${L[0]}${D}${Join<T, D>}` :
+    L extends readonly [] ? "" :
+    L extends readonly [any] ? `${L[0]}` :
+    L extends readonly [any, ...infer T] ? `${L[0]}${D}${Join<T, D>}` :
     string;
 }
 

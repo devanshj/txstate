@@ -2,7 +2,7 @@ import { Machine } from ".";
 
 Machine({
   initial: "a",
-  id: "bar" as const,
+  id: "bar",
   on: {
     A: "#foo",
     B: ".b.b2",
@@ -18,23 +18,23 @@ Machine({
       initial: "a1",
       states: {
         a1: {
-          id: "foo" as const
+          id: "foo"
         },
         a2: {}
       }
     },
     b: {
-      id: "baz" as const,
+      id: "baz",
       initial: "b1",
       states: {
         b1: {},
         b2: {}
       },
-      delimiter: "/" as const,
+      delimiter: "/",
       on: {
         A: "/b2",
         B: "a/a1",
-        c: {
+        C: {
           target: "#bar/a/a2",
           // @ts-expect-error
           internal: true
@@ -49,19 +49,19 @@ Machine({
 Machine({
   initial: "a",
   // @ts-expect-error
-  id: "bar" as const,
+  id: "bar",
   states: {
     a: {
       // @ts-expect-error
-      id: "bar" as const
+      id: "bar"
     },
     b: {
       // @ts-expect-error
-      id: "foo" as const
+      id: "foo"
     },
     c: {
       // @ts-expect-error
-      id: "foo" as const
+      id: "foo"
     }
   }
 })
