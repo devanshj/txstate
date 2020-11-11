@@ -38,8 +38,7 @@ namespace MachineDefinition {
       States = O.Prop<Self, "states">,
       Type = O.Prop<Self, "type", "compound">,
       Id = O.Prop<Self, "id">,
-      On = O.Prop<Self, "on">,
-      Delimiter = O.Prop<Self, "delimiter">,
+      On = O.Prop<Self, "on">
     > =
       & { type?:
             | "compound"
@@ -71,7 +70,6 @@ namespace MachineDefinition {
                   ? Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
                   : "Error: only string identifier allowed"
             }
-        , delimiter?: Delimiter extends string ? Delimiter : "Error: Delimiter should be string"
         }
       
     export type Any = A.Object;
@@ -87,13 +85,12 @@ namespace MachineDefinition {
         Cache extends A.Object,
         Self = A.Cast<O.Path<Definition, Path>, A.Object>,
         StateNode extends A.Object = A.Cast<O.Path<Definition, L.Pop<L.Pop<Path>>>, A.Object>,
-        Delimiter extends string = A.Cast<O.Prop<StateNode, "delimiter", ".">, string>,
         TargetPathStringInternal = 
           | keyof O.Prop<StateNode, "states">
-          | `${Delimiter}${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, Delimiter>}`,
+          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`,
         TargetPathStringExternal =
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, Delimiter>
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, Delimiter>,
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">,
         TargetPathString =
           | TargetPathStringInternal
           | TargetPathStringExternal

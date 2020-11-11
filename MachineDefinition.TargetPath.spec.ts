@@ -30,13 +30,13 @@ Machine({
         b1: {},
         b2: {}
       },
-      delimiter: "/",
+      // delimiter: "/", TODO
       on: {
-        A: "/b2",
-        B: "a/a1",
+        A: ".b2",
+        B: "a.a1",
         // @ts-expect-error
         C: {
-          target: "#bar/a/a2",
+          target: "#bar.a.a2",
           internal: true
         },
         // @ts-expect-error
