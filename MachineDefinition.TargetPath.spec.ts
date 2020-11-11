@@ -34,9 +34,9 @@ Machine({
       on: {
         A: "/b2",
         B: "a/a1",
+        // @ts-expect-error
         C: {
           target: "#bar/a/a2",
-          // @ts-expect-error
           internal: true
         },
         // @ts-expect-error
@@ -93,7 +93,9 @@ Machine({
     mode: {
       initial: "active",
       states: {
-        inactive: {},
+        inactive: {
+          id: "lol"
+        },
         pending: {},
         active: {}
       }
@@ -107,8 +109,7 @@ Machine({
     }
   },
   on: {
-    DEACTIVATE: {
-      target: [".mode.inactive", ".status.disabled"]
-    }
+    // @ts-expect-error
+    DEACTIVATE: [".mode", "#lol"]
   }
 });

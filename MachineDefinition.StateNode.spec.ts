@@ -40,10 +40,11 @@ Machine({
 })
 
 
-// @ts-expect-error
 Machine({
   type: "atomic",
+  // @ts-expect-error
   initial: "a",
+  // @ts-expect-error
   states: { a: {} }
 })
 
