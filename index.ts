@@ -51,7 +51,9 @@ namespace MachineDefinition {
             ? "Error: atomic state node can't have states property"
             : { [StateIdentifier in keyof States]:
                   StateIdentifier extends string
-                    ? StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>, Cache>
+                    ? S.DoesContain<StateIdentifier, "."> extends B.True
+                        ? `Error: identifiers can't have '.' as it's use as a path delimiter`
+                        : StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>, Cache>
                     : `Error: only string identifiers allowed`
               }
         }

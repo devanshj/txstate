@@ -57,3 +57,10 @@ Machine({
   initial: "a",
   states: { a: {}, b: {} }
 })
+
+Machine({
+  states: {
+    // @ts-expect-error
+    "a.b": {}
+  }
+})
