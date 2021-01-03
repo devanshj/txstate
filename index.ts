@@ -86,30 +86,29 @@ namespace MachineDefinition {
         Path extends readonly PropertyKey[],
         Cache extends A.Object,
         Self = A.Cast<O.Path<Definition, Path>, A.Object>,
-        StateNode extends A.Object = A.Cast<O.Path<Definition, L.Pop<L.Pop<Path>>>, A.Object>,
-        TargetPathStringInternal = 
-          | keyof O.Prop<StateNode, "states">
-          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`,
-        TargetPathStringExternal =
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">,
+        StateNodePath extends readonly PropertyKey[] = L.Pop<L.Pop<Path>>,
+        StateNode extends A.Object = A.Cast<O.Path<Definition, StateNodePath>, A.Object>,  
         TargetPathString =
-          | TargetPathStringInternal
-          | TargetPathStringExternal
+          | keyof O.Prop<StateNode, "states">
+          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
       > =
-        | TargetPathString
-        | ( Self extends TargetPathString[]
-              ? MultipleTargetPath.Of<Definition, Implementations, Path, Cache>
-              : A.Tuple<TargetPathString>
-          )
-        | { target: TargetPathString
-          , internal?:
-              A.IsNever<O.Prop<Self, "target", never>> extends B.True ? boolean :
-              O.Prop<Self, "target"> extends TargetPathStringExternal ? false :
-              boolean
+        ( Self extends { target: any } ? never : // for better errors
+            | TargetPathString
+            | ( Self extends TargetPathString[]
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
+                  : A.Tuple<TargetPathString>
+              )
+        )
+        | { readonly target:
+            | TargetPathString
+            | ( Self extends { readonly target: TargetPathString[] }
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
+                  : A.Tuple<TargetPathString>
+              )
+          , internal?: boolean // TODO: enforce false for external
           }
-
-      
   }
 
   export namespace NodePathString {
@@ -211,13 +210,14 @@ namespace MachineDefinition {
         true
       */
   
-      export type Of<
+      export type OfWithStateNodePath<
         Definition extends A.Object,
         Implementations extends A.Object,
         Path extends readonly PropertyKey[],
         Cache extends A.Object,
+        StateNodePath extends readonly PropertyKey[],
         Self extends A.ReadonlyTuple<string> = A.Cast<O.Path<Definition, Path>, A.ReadonlyTuple<string>>,
-        StateNodePathString extends A.String = NodePathString.FromPath<L.Pop<L.Pop<Path>>>,
+        StateNodePathString extends A.String = NodePathString.FromPath<StateNodePath>,
         SelfResolved extends A.ReadonlyTuple<A.String> =
           A.Cast<{ [I in keyof Self]:
             TargetPathString.ResolveWithStateNode<

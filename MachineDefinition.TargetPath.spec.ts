@@ -34,9 +34,9 @@ Machine({
       on: {
         A: ".b2",
         B: "a.a1",
-        // @ts-expect-error
         C: {
           target: "#bar.a.a2",
+          // @\ts-expect-error TODO enforce internal: false
           internal: true
         },
         // @ts-expect-error
@@ -110,6 +110,12 @@ Machine({
   },
   on: {
     // @ts-expect-error
-    DEACTIVATE: [".mode", "#lol"]
+    DEACTIVATE: [".mode", "#lol"],
+    ACTIVATE: [".mode.active", ".status.enabled"],
+    FOO: {
+      // @ts-expect-error
+      target: [".mode", "#lol"]
+    },
+    BAR: { target: [".mode.active", ".status.enabled"] }
   }
 });
