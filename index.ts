@@ -105,19 +105,21 @@ namespace MachineDefinition {
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
       > =
         ( Self extends { target: any } ? never : // for better errors
+            | undefined
             | TargetPathString
             | ( Self extends TargetPathString[]
                   ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
         )
-        | { readonly target:
+        | { target?:
+            | undefined
             | TargetPathString
             | ( Self extends { readonly target: TargetPathString[] }
                   ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
-          , internal?: boolean // TODO: enforce false for external
+          , internal?: Self extends { target: any } ? boolean : never // TODO: enforce false for external
           }
   }
 
@@ -366,7 +368,8 @@ namespace MachineDefinition {
         & { [_ in StateNodePathString]:
               { [EventIdentifier in keyof On]:
                   (On[EventIdentifier] extends { target: infer T } ? T : On[EventIdentifier]) extends infer Target
-                    ? Target extends readonly string[]
+                    ? Target extends undefined ? undefined : 
+                      Target extends readonly string[]
                         ? { [K in keyof Target]:
                               TargetPathString.ResolveWithStateNode<
                                 Cache, StateNodePathString, S.Assert<Target[K]>
@@ -382,7 +385,6 @@ namespace MachineDefinition {
             TransitionMap.Of<Definition, Implementation, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
           }[keyof States]>
       >
-
 
     type TestOf<D extends A.Object> = TransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
     Test.checks([
@@ -417,7 +419,7 @@ namespace MachineDefinition {
             c: {
               type: "parallel",
               states: {
-                c1: {},
+                c1: { on: { X: undefined } },
                 c2: { id: "bar" }
               }
             }
@@ -429,7 +431,7 @@ namespace MachineDefinition {
         , "b.p": { XYZ: "b.q" }
         , "b.q": {}
         , "c": {}
-        , "c.c1": {}
+        , "c.c1": { X: undefined }
         , "c.c2": {}
         },
         Test.Pass
