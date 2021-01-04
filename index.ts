@@ -13,27 +13,36 @@ namespace MachineDefinition {
     & StateNode.Of<Definition, Implementations, []>
     & { context?: "TODO" };
 
+  export namespace Cache {
+    export type  Get<
+      Cache,
+      Key extends
+        | "TargetPath.OfId.WithRoot<Definition>"
+        | "TargetPath.WithRoot<Definition>"
+        | "IdMap.WithRoot<Definition>"
+        | "TransitionMap.Of<Definition>"
+    > =
+      O.Prop<Cache, Key>
 
-  export type FromCache<
-    Cache,
-    Key extends
-      | "TargetPath.OfId.WithRoot<Definition>"
-      | "TargetPath.WithRoot<Definition>"
-      | "IdMap.WithRoot<Definition>"
-  > =
-    O.Prop<Cache, Key>
+    export type Of<Definition extends A.Object, Implementations extends A.Object> =
+      { "TargetPath.OfId.WithRoot<Definition>": TargetPath.OfId.WithRoot<Definition>
+      , "TargetPath.WithRoot<Definition>": TargetPath.WithRoot<Definition>
+      , "IdMap.WithRoot<Definition>": IdMap.WithRoot<Definition>
+      } extends infer PartialCache
+        ? & PartialCache 
+          & { "TransitionMap.Of<Definition>":
+                TransitionMap.Of<Definition, Implementations, [], O.Assert<PartialCache>>
+            }
+        : never
+  }
 
   export namespace StateNode {
     export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
       Path extends readonly PropertyKey[],
-      Cache extends A.Object =
-        { "TargetPath.OfId.WithRoot<Definition>": TargetPath.OfId.WithRoot<Definition>
-        , "TargetPath.WithRoot<Definition>": TargetPath.WithRoot<Definition>
-        , "IdMap.WithRoot<Definition>": IdMap.WithRoot<Definition>
-        },
-      Self extends A.Object = A.Cast<O.Path<Definition, Path>, A.Object>,
+      Cache extends A.Object = Cache.Of<Definition, Implementations>,
+      Self extends A.Object = O.Assert<O.Path<Definition, Path>>,
       Initial = O.Prop<Self, "initial">,
       States = O.Prop<Self, "states">,
       Type = O.Prop<Self, "type", "compound">,
@@ -73,6 +82,7 @@ namespace MachineDefinition {
                   : "Error: only string identifier allowed"
             }
         }
+      & { __cache?: Partial<Cache> }
       
     export type Any = A.Object;
 
@@ -85,14 +95,14 @@ namespace MachineDefinition {
         Implementations extends A.Object,
         Path extends readonly PropertyKey[],
         Cache extends A.Object,
-        Self = A.Cast<O.Path<Definition, Path>, A.Object>,
+        Self = O.Assert<O.Path<Definition, Path>>,
         StateNodePath extends readonly PropertyKey[] = L.Pop<L.Pop<Path>>,
-        StateNode extends A.Object = A.Cast<O.Path<Definition, StateNodePath>, A.Object>,  
+        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,  
         TargetPathString =
           | keyof O.Prop<StateNode, "states">
           | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | L.Join<A.Cast<FromCache<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
       > =
         ( Self extends { target: any } ? never : // for better errors
             | TargetPathString
@@ -111,13 +121,14 @@ namespace MachineDefinition {
           }
   }
 
+  // NodePathString = Resolved TargetPathString
   export namespace NodePathString {
     export type RegionRoot<
       NodePathString extends string,
       RootNode extends A.Object,
       NodePath extends string[] = NodePathString.ToPath<NodePathString>,
       ParentNodePath extends string[] = L.Pop<L.Pop<NodePath>>,
-      ParentNode extends A.Object = A.Cast<O.Path<RootNode, ParentNodePath>, A.Object>,
+      ParentNode extends A.Object = O.Assert<O.Path<RootNode, ParentNodePath>>,
       ParentNodePathString extends string = NodePathString.FromPath<ParentNodePath>
     > =
       O.Prop<ParentNode, "type", "compound"> extends "parallel" ? NodePath :
@@ -159,13 +170,13 @@ namespace MachineDefinition {
     export type WithRoot<
       StateNode extends A.Object,
       Accumulator extends readonly PropertyKey[] = [],
-      States extends A.Object = A.Cast<O.Prop<StateNode, "states", A.Object>, A.Object>,
+      States extends A.Object = O.Assert<O.Prop<StateNode, "states", A.Object>>,
       ChildStateIdentifier extends keyof States = keyof States
     > =
       | (A.Equals<Accumulator, []> extends B.True ? never : Accumulator)
       | { hasChildStates:
             ChildStateIdentifier extends any
-              ? TargetPath.WithRoot<A.Cast<States[ChildStateIdentifier], A.Object>, [...Accumulator, ChildStateIdentifier]>
+              ? TargetPath.WithRoot<O.Assert<States[ChildStateIdentifier]>, [...Accumulator, ChildStateIdentifier]>
               : never
         , else: never
         }[A.IsNever<ChildStateIdentifier> extends B.False ? "hasChildStates" : "else"] 
@@ -174,12 +185,12 @@ namespace MachineDefinition {
       export type WithRoot<
         StateNode extends A.Object,
         Id = O.Prop<StateNode, "id", undefined>,
-        PathForId extends string = A.IsUndefined<Id> extends B.True ? never : `#${A.Cast<Id, string>}`,
-        States extends A.Object = A.Cast<O.Prop<StateNode, "states", {}>, A.Object>
+        PathForId extends string = A.IsUndefined<Id> extends B.True ? never : `#${S.Assert<Id>}`,
+        States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
       > =
         | (A.IsNever<PathForId> extends B.True ? never : [PathForId])
         | { hasChildStates:  
-            | { [S in keyof States]: TargetPath.OfId.WithRoot<A.Cast<States[S], A.Object>> }[keyof States]
+            | { [S in keyof States]: TargetPath.OfId.WithRoot<O.Assert<States[S]>> }[keyof States]
             | { hasId: 
                 [ PathForId
                 , ...(
@@ -221,15 +232,15 @@ namespace MachineDefinition {
         SelfResolved extends A.ReadonlyTuple<A.String> =
           A.Cast<{ [I in keyof Self]:
             TargetPathString.ResolveWithStateNode<
-              Definition, Implementations, Cache,
+              Cache,
               StateNodePathString,
-              A.Cast<Self[I], A.String>
+              S.Assert<Self[I]>
             >
           }, A.ReadonlyTuple<string>>,
         RegionRootOf extends A.ReadonlyTuple<A.Tuple<A.String>> =
           A.Cast<{ [I in keyof SelfResolved]:
             NodePathString.RegionRoot<
-              A.Cast<SelfResolved[I], A.String>,
+              S.Assert<SelfResolved[I]>,
               Definition
             >
           }, A.ReadonlyTuple<A.Tuple<A.String>>>
@@ -237,22 +248,22 @@ namespace MachineDefinition {
         L.ReadonlyOf<A.Cast<{ [I in keyof Self]:
           [ | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  NodePathString.IsDescendant<A.Cast<O.Prop<SelfResolved, J>, string>, A.Cast<O.Prop<SelfResolved, I>, string>> extends B.True
+                  NodePathString.IsDescendant<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
                     ? Self[J]
                     : never
               }[number] extends infer Ancestors
                 ? A.IsNever<Ancestors> extends B.False
-                    ? `Error: ${A.Cast<Self[I], string>} is descendant of ${S.Commas<A.Cast<Ancestors, string>>}`
+                    ? `Error: ${S.Assert<Self[I]>} is descendant of ${S.Commas<S.Assert<Ancestors>>}`
                     : never
                 : never)
             | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  NodePathString.IsAncestor<A.Cast<O.Prop<SelfResolved, J>, string>, A.Cast<O.Prop<SelfResolved, I>, string>> extends B.True
+                  NodePathString.IsAncestor<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
                     ? Self[J]
                     : never
               }[number] extends infer Descendants
                 ? A.IsNever<Descendants> extends B.False
-                    ? `Error: ${A.Cast<Self[I], string>} is ancestor of ${S.Commas<A.Cast<Descendants, string>>}`
+                    ? `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}`
                     : never
                 : never)
           , { [J in keyof Self]:
@@ -261,8 +272,8 @@ namespace MachineDefinition {
                 never
             }[number] extends infer NodesWithCommonRegionRoot
               ? A.IsNever<NodesWithCommonRegionRoot> extends B.False
-                  ? `Error: ${A.Cast<Self[I], string>} has region root same as that of ${
-                      S.Commas<A.Cast<NodesWithCommonRegionRoot, string>>
+                  ? `Error: ${S.Assert<Self[I]>} has region root same as that of ${
+                      S.Commas<S.Assert<NodesWithCommonRegionRoot>>
                     }`
                   : never
               : never
@@ -276,30 +287,32 @@ namespace MachineDefinition {
 
   export namespace TargetPathString {
     export type ResolveWithStateNode<
-      Definition extends A.Object,
-      Implementations extends A.Object,
       Cache extends A.Object,
       StateNodePathString extends string,
       TargetPathString extends string
     > =
-      IsResolved<TargetPathString> extends B.True ? TargetPathString :
       IsId<TargetPathString> extends B.True ?
-        O.KeyWithValue<A.Cast<FromCache<Cache, "IdMap.WithRoot<Definition>">, A.Object>, S.Shift<TargetPathString>> :
-      IsStateIdentifier<TargetPathString> extends B.True ?
-        StateNodePathString extends ""
-          ? TargetPathString
-          : `${StateNodePathString}.${TargetPathString}` :
+        S.DoesContain<TargetPathString, "."> extends B.True
+          ? TargetPathString extends `#${infer Id}.${infer RestPath}`
+              ? O.KeyWithValue<
+                  O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                  Id
+                > extends infer IdNodePath
+                  ? IdNodePath extends "" ? RestPath : `${S.Assert<IdNodePath>}.${RestPath}`
+                  : never
+              : never
+          : O.KeyWithValue<
+              O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+              S.Shift<TargetPathString>
+            > :
       IsRelative<TargetPathString> extends B.True ?
         StateNodePathString extends ""
           ? S.Shift<TargetPathString>
           : `${StateNodePathString}${TargetPathString}` :
-      never
+        TargetPathString
 
     export type IsId<P extends string> = S.DoesStartWith<P, "#">
     export type IsRelative<P extends string> = S.DoesStartWith<P, ".">
-    export type IsStateIdentifier<P extends string> = B.Not<S.DoesContain<P, ".">>
-    export type IsResolved<P extends string> =
-      A.Equals<[IsId<P>, IsRelative<P>, IsStateIdentifier<P>], [B.False, B.False, B.False]>
   }
 
 
@@ -308,7 +321,7 @@ namespace MachineDefinition {
         StateNode extends A.Object,
         PathString extends string = "",
         Id = O.Prop<StateNode, "id">, 
-        States extends A.Object = A.Cast<O.Prop<StateNode, "states", {}>, A.Object>
+        States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
       > = 
         & (A.Equals<Id, undefined> extends B.True
             ? {}
@@ -316,7 +329,7 @@ namespace MachineDefinition {
           )
         & { hasChildStates:
               U.IntersectOf<{
-                [S in keyof States]: IdMap.WithRoot<A.Cast<States[S], A.Object>, PathString extends "" ? S : `${PathString}.${A.Cast<S, string>}`>
+                [S in keyof States]: IdMap.WithRoot<O.Assert<States[S]>, PathString extends "" ? S : `${PathString}.${S.Assert<S>}`>
               }[keyof States]>
           , else: {}
           }[A.IsNever<keyof States> extends B.False ? "hasChildStates" : "else"]
@@ -329,13 +342,99 @@ namespace MachineDefinition {
       Path extends readonly PropertyKey[],
       Cache extends A.Object,
       Self = O.Path<Definition, Path>,
-      IdMap extends A.Object = A.Cast<FromCache<Cache, "IdMap.WithRoot<Definition>">, A.Object>
+      IdMap extends A.Object = O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>
     > =
       Self extends string
         ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
           ? Self
           : `Ids should be unique, '${Self}' is already used`
         : "Ids should be strings"
+  }
+
+  export namespace TransitionMap {
+    export type Of<
+      Definition extends A.Object,
+      Implementation extends A.Object,
+      Path extends readonly PropertyKey[],
+      Cache extends A.Object,
+      StateNode = O.Path<Definition, Path>,
+      StateNodePathString extends A.String = NodePathString.FromPath<Path>,
+      On = O.Prop<StateNode, "on", {}>,
+      States = O.Prop<StateNode, "states", {}>
+    > =
+      A.Compute<
+        & { [_ in StateNodePathString]:
+              { [EventIdentifier in keyof On]:
+                  (On[EventIdentifier] extends { target: infer T } ? T : On[EventIdentifier]) extends infer Target
+                    ? Target extends readonly string[]
+                        ? { [K in keyof Target]:
+                              TargetPathString.ResolveWithStateNode<
+                                Cache, StateNodePathString, S.Assert<Target[K]>
+                              >
+                          }
+                        : TargetPathString.ResolveWithStateNode<
+                            Cache, StateNodePathString, S.Assert<Target>
+                          >
+                    : never
+              }
+          }
+        & U.IntersectOf<{ [ChildStateIdentifier in keyof States]: 
+            TransitionMap.Of<Definition, Implementation, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
+          }[keyof States]>
+      >
+
+
+    type TestOf<D extends A.Object> = TransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
+    Test.checks([
+      Test.check<
+        TestOf<{
+          initial: "enabled",
+          states: {
+            enabled: { on: { DISABLE: "#foo" } },
+            disabled: { id: "foo", on: { ENABLE: "enabled" } }
+          }
+        }>,
+        { "": {}
+        , "enabled": { DISABLE: "disabled" }
+        , "disabled": { ENABLE: "enabled" }
+        },
+        Test.Pass
+      >(),
+      Test.check<
+        TestOf<{
+          initial: "a",
+          states: {
+            a: { on: { A: "#foo" } },
+            b: {
+              id: "foo",
+              on: { B: ["c.c1", "#bar"], C: ".p" },
+              initial: "p",
+              states: {
+                p: { on: { XYZ: "#foo.q" } },
+                q: {}
+              }
+            },
+            c: {
+              type: "parallel",
+              states: {
+                c1: {},
+                c2: { id: "bar" }
+              }
+            }
+          }
+        }>,
+        { "": {}
+        , "a": { A: "b" }
+        , "b": { B: ["c.c1", "c.c2"], C: "b.p" }
+        , "b.p": { XYZ: "b.q" }
+        , "b.q": {}
+        , "c": {}
+        , "c.c1": {}
+        , "c.c2": {}
+        },
+        Test.Pass
+      >()
+    ])
   }
 
   export namespace Implementations {
@@ -349,6 +448,8 @@ namespace MachineHandle {
 }
 
 declare module "Object/_api" {
+  export type Assert<T> = A.Cast<T, A.Object>;
+
   export type Prop<T, K, F = undefined> =
     K extends keyof T
       ? A.Equals<T[K], undefined> extends B.True
@@ -408,6 +509,7 @@ declare module "Union/_api" {
 
 namespace S {
   export type String = string;
+  export type Assert<T> = A.Cast<T, A.String>
   
   export type DoesStartWith<S extends S.String, X extends S.String> =
     S extends X ? B.True :
@@ -434,6 +536,3 @@ namespace S {
       ? `${P}${With}${Replace<S, What, With>}`
       : S;
 }
-
-
-declare const m: <T>(node: A.InferNarrowest<T>) => void

@@ -96,7 +96,9 @@ Machine({
         inactive: {
           id: "lol"
         },
-        pending: {},
+        pending: {
+          id: "xyz"
+        },
         active: {}
       }
     },
@@ -111,6 +113,8 @@ Machine({
   on: {
     // @ts-expect-error
     DEACTIVATE: [".mode", "#lol"],
+    // @ts-expect-error
+    Z: ["#lol", "#xyz"],
     ACTIVATE: [".mode.active", ".status.enabled"],
     FOO: {
       // @ts-expect-error
