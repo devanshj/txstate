@@ -1,4 +1,7 @@
 {
+  "name": "txstate",
+  "version": "0.0.0",
+  "private": true,
   "dependencies": {
     "ts-toolbelt": "^8.0.3"
   },

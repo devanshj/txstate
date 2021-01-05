@@ -6,6 +6,6 @@
     "noImplicitAny": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-  },
-  "exclude": ["./isolated-tests/*"]
+    "noEmit": true
+  }
 }

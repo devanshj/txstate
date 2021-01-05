@@ -8,8 +8,11 @@ export declare const Machine: {
   ): MachineHandle.Of<D, I>
 }
 
+export interface TXStateFlags {}
+
 namespace MachineDefinition {
   export type Of<Definition extends A.Object, Implementations extends A.Object> =
+    O.Has<TXStateFlags, "noChecks"> extends B.True ? object :
     & StateNode.Of<Definition, Implementations, []>
     & { context?: "TODO" };
 
@@ -31,6 +34,7 @@ namespace MachineDefinition {
       } extends infer PartialCache
         ? & PartialCache 
           & { "TransitionMap.Of<Definition>":
+                O.Has<TXStateFlags, "noTransitionMap"> extends B.True ? any :
                 TransitionMap.Of<Definition, Implementations, [], O.Assert<PartialCache>>
             }
         : never
@@ -47,7 +51,8 @@ namespace MachineDefinition {
       States = O.Prop<Self, "states">,
       Type = O.Prop<Self, "type", "compound">,
       Id = O.Prop<Self, "id">,
-      On = O.Prop<Self, "on">
+      On = O.Prop<Self, "on">,
+      Always = O.Prop<Self, "always">
     > =
       & { type?:
             | "compound"
@@ -81,8 +86,17 @@ namespace MachineDefinition {
                   ? Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
                   : "Error: only string identifier allowed"
             }
+        , always?: 
+            Always extends any[]
+              ? L.ReadonlyOf<L.Assert<{
+                  [K in keyof Always]:
+                    U.Exclude<
+                      Transition.Of<Definition, Implementations, L.Concat<Path, ["always", K]>, Cache>,
+                      string | undefined
+                    >
+                }>>
+              : any[]
         }
-      & { __cache?: Partial<Cache> }
       
     export type Any = A.Object;
 
@@ -97,26 +111,31 @@ namespace MachineDefinition {
         Cache extends A.Object,
         Self = O.Assert<O.Path<Definition, Path>>,
         StateNodePath extends readonly PropertyKey[] = L.Pop<L.Pop<Path>>,
-        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,  
+        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
         TargetPathString =
           | keyof O.Prop<StateNode, "states">
           | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
       > =
-        ( Self extends { target: any } ? never : // for better errors
+        ( Self extends { target: any } ? never :
             | undefined
             | TargetPathString
-            | ( Self extends TargetPathString[]
-                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
+            | ( Self extends A.Tuple<TargetPathString>
+                  ? O.Has<TXStateFlags, "noMultipleTargetChecks"> extends B.True
+                      ? A.Tuple<TargetPathString>
+                      : MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
         )
         | { target?:
             | undefined
             | TargetPathString
-            | ( Self extends { readonly target: TargetPathString[] }
-                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
+            | ( Self extends { target: A.Tuple<TargetPathString> }
+                  ? O.Has<TXStateFlags, "noMultipleTargetChecks"> extends B.True
+                      ? A.Tuple<TargetPathString>
+                      : MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
           , internal?: Self extends { target: any } ? boolean : never // TODO: enforce false for external
@@ -247,7 +266,7 @@ namespace MachineDefinition {
             >
           }, A.ReadonlyTuple<A.Tuple<A.String>>>
       > =
-        L.ReadonlyOf<A.Cast<{ [I in keyof Self]:
+        L.ReadonlyOf<L.Assert<{ [I in keyof Self]:
           [ | ({ [J in keyof Self]:
                   J extends I ? never : 
                   NodePathString.IsDescendant<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
@@ -284,7 +303,7 @@ namespace MachineDefinition {
               A.IsNever<RegionRootError> extends B.False ? RegionRootError :
               Self[I]
             : never
-        }, L.List>>
+        }>>
     }
 
   export namespace TargetPathString {
@@ -293,7 +312,7 @@ namespace MachineDefinition {
       StateNodePathString extends string,
       TargetPathString extends string
     > =
-      IsId<TargetPathString> extends B.True ?
+      S.DoesStartWith<TargetPathString, "#"> extends B.True ?
         S.DoesContain<TargetPathString, "."> extends B.True
           ? TargetPathString extends `#${infer Id}.${infer RestPath}`
               ? O.KeyWithValue<
@@ -307,14 +326,20 @@ namespace MachineDefinition {
               O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
               S.Shift<TargetPathString>
             > :
-      IsRelative<TargetPathString> extends B.True ?
+      S.DoesStartWith<TargetPathString, "."> extends B.True ?
         StateNodePathString extends ""
           ? S.Shift<TargetPathString>
           : `${StateNodePathString}${TargetPathString}` :
-        TargetPathString
-
-    export type IsId<P extends string> = S.DoesStartWith<P, "#">
-    export type IsRelative<P extends string> = S.DoesStartWith<P, ".">
+      B.Not<S.DoesContain<TargetPathString, ".">> extends B.True ?
+        StateNodePathString extends ""
+          ? TargetPathString
+          : L.Join<
+              L.Append<
+                L.Pop<S.Split<StateNodePathString, ".">>,
+                TargetPathString
+              >, "."
+            > :
+      TargetPathString
   }
 
 
@@ -364,7 +389,7 @@ namespace MachineDefinition {
       On = O.Prop<StateNode, "on", {}>,
       States = O.Prop<StateNode, "states", {}>
     > =
-      A.Compute<
+      O.Mergify<
         & { [_ in StateNodePathString]:
               { [EventIdentifier in keyof On]:
                   (On[EventIdentifier] extends { target: infer T } ? T : On[EventIdentifier]) extends infer Target
@@ -387,6 +412,7 @@ namespace MachineDefinition {
       >
 
     type TestOf<D extends A.Object> = TransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
+     
     Test.checks([
       Test.check<
         TestOf<{
@@ -466,6 +492,8 @@ declare module "Object/_api" {
     { [K in U.Exclude<keyof O, E>]:
         O[K] extends object ? O.DeepOmit<O[K], E> : O[K]
     }
+  
+  export type Mergify<T extends object> = { [K in keyof T]: T[K] }
 }
 
 
@@ -491,6 +519,8 @@ declare module "Any/_api" {
 }
 
 declare module "List/_api" {
+  export type Assert<T> = A.Cast<T, A.Tuple>;
+
   export type ConcatAll<L extends L.List> =
     L.Flatten<L, 1, '1'>;
   

@@ -18,7 +18,14 @@ Machine({
       initial: "a1",
       states: {
         a1: {
-          id: "foo"
+          id: "foo",
+          always: [
+            { target: "#baz" },
+            // @ts-expect-error
+            { target: "zzz" },
+            // @ts-expect-error
+            "#baz"
+          ]
         },
         a2: {}
       }
@@ -36,7 +43,7 @@ Machine({
         B: "a.a1",
         C: {
           target: "#bar.a.a2",
-          // @\ts-expect-error TODO enforce internal: false
+          // TODO @\ts-expect-error enforce internal: false
           internal: true
         },
         // @ts-expect-error
@@ -84,4 +91,20 @@ Machine({
       }
     }
   }
+})
+
+
+Machine({
+  initial: "a",
+  states: {
+    a: {
+      initial: "p",
+      states: {
+        p: { on: { X: "q" } },
+        q: {}
+      }
+    }
+  },
+  // @ts-expect-error
+  on: { X: "states" }
 })

@@ -1,7 +1,7 @@
 {
     "cSpell.words": ["scxml"],
     "editor.rulers": [
-        120
+        180
     ],
     "typescript.tsdk": "node_modules\\typescript\\lib"
 }
