@@ -1,7 +1,7 @@
 import { O, A, U, L, B, Test } from "ts-toolbelt";
 
 export declare const Machine: {
-  <D extends MachineDefinition.Of<D, {}>>(definition: A.InferNarrowest<D>): MachineHandle.Of<D, {}>
+  <D extends MachineDefinition.Of<D, {}>>(definition: A.InferNarrowest<D>): D
   <D extends MachineDefinition.Of<D, I>, I extends MachineDefinition.Implementations.Of<D, I>>(
     definition: D,
     implementations: I
@@ -17,7 +17,7 @@ namespace MachineDefinition {
     & { context?: "TODO" };
 
   export namespace Cache {
-    export type  Get<
+    export type Get<
       Cache,
       Key extends
         | "TargetPath.OfId.WithRoot<Definition>"
@@ -103,7 +103,7 @@ namespace MachineDefinition {
   }
 
   export namespace Transition {
-
+ 
     export type Of<
         Definition extends A.Object,
         Implementations extends A.Object,
@@ -120,26 +120,57 @@ namespace MachineDefinition {
           | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
       > =
         ( Self extends { target: any } ? never :
-            | undefined
-            | TargetPathString
-            | ( Self extends A.Tuple<TargetPathString>
-                  ? O.Has<TXStateFlags, "noMultipleTargetChecks"> extends B.True
-                      ? A.Tuple<TargetPathString>
-                      : MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
-                  : A.Tuple<TargetPathString>
+            ( Self extends object[] ? never :
+              | `undefined3`
+              | TargetPathString
+              | ( Self extends A.ReadonlyTuple<TargetPathString>
+                    ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
+                    : A.ReadonlyTuple<TargetPathString>
+                )
+            )
+            | ( Self extends object[]
+                  ? L.ReadonlyOf<L.Assert<{
+                      [K in keyof Self]:
+                        { target?:
+                            | `undefined1`
+                            | TargetPathString
+                            | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
+                                  : A.ReadonlyTuple<TargetPathString>
+                              )
+                        , internal?: boolean
+                        }
+                    }>>
+                  : {
+                      target:
+                        | `undefined2`
+                        | TargetPathString
+                        | A.ReadonlyTuple<TargetPathString>
+                    }[]
               )
         )
         | { target?:
-            | undefined
+            | `undefined4`
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? O.Has<TXStateFlags, "noMultipleTargetChecks"> extends B.True
-                      ? A.Tuple<TargetPathString>
-                      : MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
-          , internal?: Self extends { target: any } ? boolean : never // TODO: enforce false for external
-          }
+          , internal?: boolean // TODO: enforce false for external
+          };
+
+    type TargetPathStringWithStateNodePath<
+      Definition extends A.Object,
+      Implementation extends A.Object,
+      Cache extends A.Object,
+      StateNodePath extends readonly PropertyKey[],
+      StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>
+    > =
+        | keyof O.Prop<StateNode, "states">
+        | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
+        | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+        | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+        | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
   }
 
   // NodePathString = Resolved TargetPathString

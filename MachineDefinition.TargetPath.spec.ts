@@ -7,7 +7,12 @@ Machine({
     A: "#foo",
     B: ".b.b2",
     C: "#bar.a.a2",
-    D: "#baz.b2",
+    D: [
+      { target: "#baz.b2" },
+      { target: "b.b1" },
+      // @ts-expect-error
+      { target: "xyz" }
+    ],
     E: "a",
     F: "b.b1",
     // @ts-expect-error

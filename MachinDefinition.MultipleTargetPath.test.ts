@@ -29,11 +29,22 @@ Machine({
     DEACTIVATE: [".mode", "#lol"],
     // @ts-expect-error
     Z: ["#lol", "#xyz"],
+    // @ts-expect-error
+    Y: ["foobar"],
     ACTIVATE: [".mode.active", ".status.enabled"],
+    X: [
+      // @ts-expect-error
+      { target: [".mode", "#lol"] },
+      // @ts-expect-error
+      { target: ["#lol", "#xyz"] },
+      { target: [".mode.active", ".status.enabled"] },
+      // @ts-expect-error
+      { target: ["foobar"] }
+    ],
     FOO: {
       // @ts-expect-error
       target: [".mode", "#lol"]
     },
-    BAR: { target: [".mode.active", ".status.enabled"] }
+    BAR: { target: [".mode.active", ".status.enabled"] },
   }
 });
