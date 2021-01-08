@@ -21,12 +21,25 @@ Machine({
       states: {
         disabled: {},
         enabled: {}
-      }
+      },
+      // @ts-expect-error
+      always: { target: ["mode", "#lol"] }
     }
   },
+  always: [
+    // @ts-expect-error
+    { target: [".mode", "#lol"] },
+    // @ts-expect-error
+    { target: ["#lol", "#xyz"] },
+    { target: [".mode.active", ".status.enabled"] },
+    // @ts-expect-error
+    { target: ["foobar"] }
+  ],
   on: {
     // @ts-expect-error
     DEACTIVATE: [".mode", "#lol"],
+    // @ts-expect-error
+    A: { target: [".mode", "#lol"] },
     // @ts-expect-error
     Z: ["#lol", "#xyz"],
     // @ts-expect-error

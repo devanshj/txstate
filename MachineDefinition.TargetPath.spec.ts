@@ -28,8 +28,8 @@ Machine({
             { target: "#baz" },
             // @ts-expect-error
             { target: "zzz" },
-            // @ts-expect-error
-            "#baz"
+            // TODO @\ts-expect-error better error
+            // "#baz"
           ]
         },
         a2: {}

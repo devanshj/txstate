@@ -86,16 +86,7 @@ namespace MachineDefinition {
                   ? Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
                   : "Error: only string identifier allowed"
             }
-        , always?: 
-            Always extends any[]
-              ? L.ReadonlyOf<L.Assert<{
-                  [K in keyof Always]:
-                    U.Exclude<
-                      Transition.Of<Definition, Implementations, L.Concat<Path, ["always", K]>, Cache>,
-                      string | undefined
-                    >
-                }>>
-              : any[]
+        , always?: Always.Of<Definition, Implementations, L.Append<Path, "always">, Cache>
         }
       
     export type Any = A.Object;
@@ -121,7 +112,7 @@ namespace MachineDefinition {
       > =
         ( Self extends { target: any } ? never :
             ( Self extends object[] ? never :
-              | `undefined3`
+              | undefined
               | TargetPathString
               | ( Self extends A.ReadonlyTuple<TargetPathString>
                     ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
@@ -132,7 +123,7 @@ namespace MachineDefinition {
                   ? L.ReadonlyOf<L.Assert<{
                       [K in keyof Self]:
                         { target?:
-                            | `undefined1`
+                            | undefined
                             | TargetPathString
                             | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
                                   ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
@@ -143,14 +134,14 @@ namespace MachineDefinition {
                     }>>
                   : {
                       target:
-                        | `undefined2`
+                        | undefined
                         | TargetPathString
                         | A.ReadonlyTuple<TargetPathString>
                     }[]
               )
         )
         | { target?:
-            | `undefined4`
+            | undefined
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
                   ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
@@ -159,18 +150,66 @@ namespace MachineDefinition {
           , internal?: boolean // TODO: enforce false for external
           };
 
-    type TargetPathStringWithStateNodePath<
-      Definition extends A.Object,
-      Implementation extends A.Object,
-      Cache extends A.Object,
-      StateNodePath extends readonly PropertyKey[],
-      StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>
-    > =
-        | keyof O.Prop<StateNode, "states">
-        | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
-        | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-        | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-        | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
+  }
+
+  export namespace Always {
+ 
+    export type Of<
+        Definition extends A.Object,
+        Implementations extends A.Object,
+        Path extends readonly PropertyKey[],
+        Cache extends A.Object,
+        Self = O.Assert<O.Path<Definition, Path>>,
+        StateNodePath extends readonly PropertyKey[] = L.Pop<Path>, // TODO: only diff, try to reuse Transition.Of
+        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
+        TargetPathString =
+          | keyof O.Prop<StateNode, "states">
+          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
+      > =
+        ( Self extends { target: any } ? never :
+          /*( Self extends object[] ? never :
+            | undefined
+            | TargetPathString
+            | ( Self extends A.ReadonlyTuple<TargetPathString>
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
+                  : A.ReadonlyTuple<TargetPathString>
+              )
+          )*/
+          | ( Self extends A.ReadonlyTuple<A.Object>
+                ? L.ReadonlyOf<L.Assert<{
+                    [K in keyof Self]:
+                      { target?:
+                          | undefined
+                          | TargetPathString
+                          | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                                ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
+                                : A.ReadonlyTuple<TargetPathString>
+                            )
+                      , internal?: boolean
+                      }
+                  }>>
+                : A.ReadonlyTuple<{
+                    target:
+                      | undefined
+                      | TargetPathString
+                      | A.ReadonlyTuple<TargetPathString>
+                  }>
+            )
+        )
+        | { target?:
+            | undefined
+            | TargetPathString
+            | ( Self extends { target: A.ReadonlyTuple<TargetPathString> }
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
+                  : A.ReadonlyTuple<TargetPathString>
+              )
+          , internal?: boolean // TODO: enforce false for external
+          };
+
+    export declare const $$Event: unique symbol;
   }
 
   // NodePathString = Resolved TargetPathString
@@ -417,36 +456,41 @@ namespace MachineDefinition {
       Cache extends A.Object,
       StateNode = O.Path<Definition, Path>,
       StateNodePathString extends A.String = NodePathString.FromPath<Path>,
-      On = O.Prop<StateNode, "on", {}>,
+      On =
+        & O.Prop<StateNode, "on", {}> 
+        & ( O.Prop<StateNode, "always"> extends undefined
+              ? {}
+              : { [Always.$$Event]: O.Prop<StateNode, "always"> }
+          ),
       States = O.Prop<StateNode, "states", {}>
     > =
       O.Mergify<
         & { [_ in StateNodePathString]:
-              { [EventIdentifier in keyof On]:
-                  On[EventIdentifier] extends infer Target
-                    ? Target extends undefined
-                        ? undefined :
-                      Target extends A.Tuple<A.Object>
-                        ? { [I in keyof Target]:
-                              O.Prop<Target[I], "target"> extends infer TargetI
-                                ? TargetI extends A.Tuple<A.String>
-                                    ? { [J in keyof TargetI]:
-                                          TargetPathString.ResolveWithStateNode<
-                                            Cache, StateNodePathString, S.Assert<TargetI[J]>
-                                          >
-                                      }
-                                    : TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<TargetI>>
-                                : never
-                          }[number] :
-                      Target extends A.Tuple<A.String>
-                        ? { [K in keyof Target]:
-                              TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<Target[K]>>
-                          } :
-                      TargetPathString.ResolveWithStateNode<
-                        Cache, StateNodePathString, S.Assert<Target extends { target: infer T } ? T : Target>
-                      >
-                    : never
-              }
+            { [EventIdentifier in keyof On]:
+              On[EventIdentifier] extends infer Target
+                ? Target extends undefined
+                    ? undefined :
+                  Target extends (A.Tuple<A.Object> | A.Object)
+                    ? (Target extends A.Tuple<A.Object> ? Target : [Target]) extends infer Target
+                      ? { [I in keyof Target]:
+                            O.Prop<Target[I], "target"> extends infer TargetI
+                              ? TargetI extends A.Tuple<A.String>
+                                  ? { [J in keyof TargetI]:
+                                        TargetPathString.ResolveWithStateNode<
+                                          Cache, StateNodePathString, S.Assert<TargetI[J]>
+                                        >
+                                    }
+                                  : TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<TargetI>>
+                              : never
+                        }[A.Cast<number, keyof Target>]
+                      : never :
+                  Target extends A.Tuple<A.String>
+                    ? { [K in keyof Target]:
+                          TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<Target[K]>>
+                      } :
+                  TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<Target>>
+                : never
+            }
           }
         & U.IntersectOf<{ [ChildStateIdentifier in keyof States]: 
             TransitionMap.Of<Definition, Implementation, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
@@ -488,16 +532,18 @@ namespace MachineDefinition {
               states: {
                 c1: { on: { X: undefined } },
                 c2: { id: "bar" }
-              }
+              },
+              always: { target: ["#foo"] }
             }
-          }
+          },
+          always: [{ target: "#foo.q" }, { target: "#foo" }]
         }>,
-        { "": {}
+        { "": { [Always.$$Event]: "b.q" | "b" }
         , "a": { A: "b" }
         , "b": { B:  ["c.c1", "c.c2"] | "b.p", C: "b.p" }
         , "b.p": { XYZ: "b.q" }
         , "b.q": {}
-        , "c": {}
+        , "c": { [Always.$$Event]: ["b"] }
         , "c.c1": { X: undefined }
         , "c.c2": {}
         },
