@@ -423,17 +423,28 @@ namespace MachineDefinition {
       O.Mergify<
         & { [_ in StateNodePathString]:
               { [EventIdentifier in keyof On]:
-                  (On[EventIdentifier] extends { target: infer T } ? T : On[EventIdentifier]) extends infer Target
-                    ? Target extends undefined ? undefined : 
-                      Target extends readonly string[]
+                  On[EventIdentifier] extends infer Target
+                    ? Target extends undefined
+                        ? undefined :
+                      Target extends A.Tuple<A.Object>
+                        ? { [I in keyof Target]:
+                              O.Prop<Target[I], "target"> extends infer TargetI
+                                ? TargetI extends A.Tuple<A.String>
+                                    ? { [J in keyof TargetI]:
+                                          TargetPathString.ResolveWithStateNode<
+                                            Cache, StateNodePathString, S.Assert<TargetI[J]>
+                                          >
+                                      }
+                                    : TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<TargetI>>
+                                : never
+                          }[number] :
+                      Target extends A.Tuple<A.String>
                         ? { [K in keyof Target]:
-                              TargetPathString.ResolveWithStateNode<
-                                Cache, StateNodePathString, S.Assert<Target[K]>
-                              >
-                          }
-                        : TargetPathString.ResolveWithStateNode<
-                            Cache, StateNodePathString, S.Assert<Target>
-                          >
+                              TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<Target[K]>>
+                          } :
+                      TargetPathString.ResolveWithStateNode<
+                        Cache, StateNodePathString, S.Assert<Target extends { target: infer T } ? T : Target>
+                      >
                     : never
               }
           }
@@ -443,7 +454,6 @@ namespace MachineDefinition {
       >
 
     type TestOf<D extends A.Object> = TransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
-     
     Test.checks([
       Test.check<
         TestOf<{
@@ -466,7 +476,7 @@ namespace MachineDefinition {
             a: { on: { A: "#foo" } },
             b: {
               id: "foo",
-              on: { B: ["c.c1", "#bar"], C: ".p" },
+              on: { B: [{ target: ["c.c1", "#bar"] }, { target: ".p" }], C: ".p" },
               initial: "p",
               states: {
                 p: { on: { XYZ: "#foo.q" } },
@@ -484,7 +494,7 @@ namespace MachineDefinition {
         }>,
         { "": {}
         , "a": { A: "b" }
-        , "b": { B: ["c.c1", "c.c2"], C: "b.p" }
+        , "b": { B:  ["c.c1", "c.c2"] | "b.p", C: "b.p" }
         , "b.p": { XYZ: "b.q" }
         , "b.q": {}
         , "c": {}
