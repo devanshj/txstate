@@ -170,14 +170,6 @@ namespace MachineDefinition {
           | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
       > =
         ( Self extends { target: any } ? never :
-          /*( Self extends object[] ? never :
-            | undefined
-            | TargetPathString
-            | ( Self extends A.ReadonlyTuple<TargetPathString>
-                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
-                  : A.ReadonlyTuple<TargetPathString>
-              )
-          )*/
           | ( Self extends A.ReadonlyTuple<A.Object>
                 ? L.ReadonlyOf<L.Assert<{
                     [K in keyof Self]:
