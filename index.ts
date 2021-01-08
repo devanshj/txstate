@@ -1,4 +1,4 @@
-import { O, A, U, L, B, Test } from "ts-toolbelt";
+import { O, A, U, L, B, Test, N } from "ts-toolbelt";
 
 export declare const Machine: {
   <D extends MachineDefinition.Of<D, {}>>(definition: A.InferNarrowest<D>): D
@@ -149,7 +149,6 @@ namespace MachineDefinition {
               )
           , internal?: boolean // TODO: enforce false for external
           };
-
   }
 
   export namespace Always {
@@ -202,6 +201,7 @@ namespace MachineDefinition {
           };
 
     export declare const $$Event: unique symbol;
+    export type $$Event = typeof $$Event
   }
 
   // NodePathString = Resolved TargetPathString
@@ -374,34 +374,36 @@ namespace MachineDefinition {
       StateNodePathString extends string,
       TargetPathString extends string
     > =
-      S.DoesStartWith<TargetPathString, "#"> extends B.True ?
-        S.DoesContain<TargetPathString, "."> extends B.True
-          ? TargetPathString extends `#${infer Id}.${infer RestPath}`
-              ? O.KeyWithValue<
-                  O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
-                  Id
-                > extends infer IdNodePath
-                  ? IdNodePath extends "" ? RestPath : `${S.Assert<IdNodePath>}.${RestPath}`
-                  : never
-              : never
-          : O.KeyWithValue<
-              O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
-              S.Shift<TargetPathString>
-            > :
-      S.DoesStartWith<TargetPathString, "."> extends B.True ?
-        StateNodePathString extends ""
-          ? S.Shift<TargetPathString>
-          : `${StateNodePathString}${TargetPathString}` :
-      B.Not<S.DoesContain<TargetPathString, ".">> extends B.True ?
-        StateNodePathString extends ""
-          ? TargetPathString
-          : L.Join<
-              L.Append<
-                L.Pop<S.Split<StateNodePathString, ".">>,
-                TargetPathString
-              >, "."
-            > :
-      TargetPathString
+      S.Assert<
+        S.DoesStartWith<TargetPathString, "#"> extends B.True ?
+          S.DoesContain<TargetPathString, "."> extends B.True
+            ? TargetPathString extends `#${infer Id}.${infer RestPath}`
+                ? O.KeyWithValue<
+                    O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                    Id
+                  > extends infer IdNodePath
+                    ? IdNodePath extends "" ? RestPath : `${S.Assert<IdNodePath>}.${RestPath}`
+                    : never
+                : never
+            : O.KeyWithValue<
+                O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                S.Shift<TargetPathString>
+              > :
+        S.DoesStartWith<TargetPathString, "."> extends B.True ?
+          StateNodePathString extends ""
+            ? S.Shift<TargetPathString>
+            : `${StateNodePathString}${TargetPathString}` :
+        B.Not<S.DoesContain<TargetPathString, ".">> extends B.True ?
+          StateNodePathString extends ""
+            ? TargetPathString
+            : L.Join<
+                L.Append<
+                  L.Pop<S.Split<StateNodePathString, ".">>,
+                  TargetPathString
+                >, "."
+              > :
+        TargetPathString
+      >
   }
 
 
@@ -539,6 +541,133 @@ namespace MachineDefinition {
         , "c.c1": { X: undefined }
         , "c.c2": {}
         },
+        Test.Pass
+      >()
+    ])
+  }
+
+
+  namespace MachineSnapshot {
+
+    export type Transition<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      InitialStateNodePathString extends A.String,
+      Event extends A.String | Always.$$Event | null,
+      InitialStateNode extends A.Object = O.Assert<O.Path<Definition, NodePathString.ToPath<InitialStateNodePathString>>>,
+      Initial extends A.String | undefined = A.Cast<O.Prop<InitialStateNode, "initial">, A.String | undefined>,
+      StateNodeType = O.Prop<InitialStateNode, "type", "compound">,
+      ChildStates = O.Prop<InitialStateNode, "states">,
+      TransitionMap = Cache.Get<Cache, "TransitionMap.Of<Definition>">,
+      EventMap = O.Prop<TransitionMap, InitialStateNodePathString>
+    > =
+      Event extends null
+        ? | ( Initial extends undefined
+                ? StateNodeType extends "parallel"
+                  ? U.ListOf<keyof ChildStates> extends infer NextStates
+                      ? { [K in keyof NextStates]:
+                            Transition<
+                              Definition,
+                              Cache, 
+                              InitialStateNodePathString extends ""
+                                ? S.Assert<NextStates[K]>
+                                : `${InitialStateNodePathString}.${S.Assert<NextStates[K]>}`,
+                              null
+                            >
+                        }
+                      : never
+                  : InitialStateNodePathString
+                : Transition<
+                    Definition,
+                    Cache, 
+                    InitialStateNodePathString extends ""
+                      ? S.Assert<Initial>
+                      : `${InitialStateNodePathString}.${S.Assert<Initial>}`,
+                    null
+                  >
+            )
+          | Transition<
+              Definition,
+              Cache, 
+              InitialStateNodePathString,
+              Always.$$Event
+            >
+        : Event extends keyof EventMap
+            ? EventMap[Event] extends undefined ? never :
+              EventMap[Event] extends any
+                ? (EventMap[Event] extends A.Tuple<String> ? EventMap[Event] : [EventMap[Event]]) extends infer NextStates
+                    ? { [K in keyof NextStates]:
+                        Transition<Definition, Cache, S.Assert<NextStates[K]>, null>
+                      }[A.Cast<number, keyof NextStates>]
+                    : never
+                : never
+            : never
+
+    type TestTransition<
+      D extends A.Object,
+      I extends A.String,
+      E extends A.String | Always.$$Event | null
+    > = Transition<D, Cache.Of<D, {}>, I, E>
+
+    Test.checks([
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: { a: {} }
+        }, "", null>,
+        "a",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a", states: { a: {
+            initial: "b", states: { b: {
+                initial: "c", states: { c: {} }
+            } }
+          } }
+        }, "", null>,
+        "a.b.c",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: { a: {}, b: {} },
+          always: [{ target: "b" }]
+        }, "", null>,
+        "a" | "b",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          type: "parallel",
+          states: { a: {}, b: {} }
+        }, "", null>,
+        ["a", "b"],
+        Test.Pass
+      >(),
+
+
+      Test.check<
+        TestTransition<{
+          type: "parallel",
+          states: { a: {}, b: {}, c: {} },
+          always: { target: "c" }
+        }, "", null>,
+        ["a", "b", "c"] | "c",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: { a: {}, b: { always: [{ target: "#foo" }] }, c: { id: "foo" } },
+          on: { A: "b" }
+        }, "", "A">,
+        "b" | "c",
         Test.Pass
       >()
     ])
