@@ -23,7 +23,7 @@ namespace MachineDefinition {
         | "TargetPath.OfId.WithRoot<Definition>"
         | "TargetPath.WithRoot<Definition>"
         | "IdMap.WithRoot<Definition>"
-        | "TransitionMap.Of<Definition>"
+        | "StaticTransitionMap.Of<Definition>"
     > =
       O.Prop<Cache, Key>
 
@@ -33,9 +33,9 @@ namespace MachineDefinition {
       , "IdMap.WithRoot<Definition>": IdMap.WithRoot<Definition>
       } extends infer PartialCache
         ? & PartialCache 
-          & { "TransitionMap.Of<Definition>":
+          & { "StaticTransitionMap.Of<Definition>":
                 O.Has<TXStateFlags, "noTransitionMap"> extends B.True ? any :
-                TransitionMap.Of<Definition, Implementations, [], O.Assert<PartialCache>>
+                StaticTransitionMap.Of<Definition, Implementations, [], O.Assert<PartialCache>>
             }
         : never
   }
@@ -442,7 +442,7 @@ namespace MachineDefinition {
         : "Ids should be strings"
   }
 
-  export namespace TransitionMap {
+  export namespace StaticTransitionMap {
     export type Of<
       Definition extends A.Object,
       Implementation extends A.Object,
@@ -488,11 +488,11 @@ namespace MachineDefinition {
             }
           }
         & U.IntersectOf<{ [ChildStateIdentifier in keyof States]: 
-            TransitionMap.Of<Definition, Implementation, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
+            StaticTransitionMap.Of<Definition, Implementation, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
           }[keyof States]>
       >
 
-    type TestOf<D extends A.Object> = TransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
+    type TestOf<D extends A.Object> = StaticTransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
     Test.checks([
       Test.check<
         TestOf<{
@@ -560,7 +560,7 @@ namespace MachineDefinition {
       Initial extends A.String | undefined = A.Cast<O.Prop<InitialStateNode, "initial">, A.String | undefined>,
       StateNodeType = O.Prop<InitialStateNode, "type", "compound">,
       ChildStates = O.Prop<InitialStateNode, "states">,
-      TransitionMap = Cache.Get<Cache, "TransitionMap.Of<Definition>">,
+      TransitionMap = Cache.Get<Cache, "StaticTransitionMap.Of<Definition>">,
       EventMap = O.Prop<TransitionMap, InitialStateNodePathString>
     > =
       Event extends null
