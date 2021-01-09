@@ -727,6 +727,62 @@ namespace MachineDefinition {
       >()
 
     ])
+
+
+    export type IsRedundantTransition<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      InitialStateNodePathString extends A.String,
+      Event extends A.String | Always.$$Event | null
+    > =
+      A.Equals<
+        InitialStateNodePathString,
+        Transition<Definition, Cache, InitialStateNodePathString, Event>
+      >
+
+    type TestIsRedundantTransition<
+      Definition extends A.Object, 
+      InitialStateNodePathString extends A.String,
+      Event extends A.String | Always.$$Event | null
+    > = IsRedundantTransition<Definition, Cache.Of<Definition, {}>, InitialStateNodePathString, Event>
+
+    Test.checks([
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { always: { target: "b" } },
+            b: { always: { target: "a" } }
+          }
+        }, "a", Always.$$Event>,
+        B.True,
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { on: { X: { target: "#foo" } } },
+            b: { id: "foo", always: { target: "a" } }
+          }
+        }, "a", "X">,
+        B.True,
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { on: { X: { target: "#foo" } } },
+            b: { id: "foo", always: { target: "a", cond: any } }
+          }
+        }, "a", "X">,
+        B.False,
+        Test.Pass
+      >()
+    ])
   }
 
   export namespace TransitionMap {
