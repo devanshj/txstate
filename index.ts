@@ -466,17 +466,18 @@ namespace MachineDefinition {
                     ? undefined :
                   Target extends (A.Tuple<A.Object> | A.Object)
                     ? (Target extends A.Tuple<A.Object> ? Target : [Target]) extends infer Target
-                      ? { [I in keyof Target]:
-                            O.Prop<Target[I], "target"> extends infer TargetI
-                              ? TargetI extends A.Tuple<A.String>
-                                  ? { [J in keyof TargetI]:
-                                        TargetPathString.ResolveWithStateNode<
-                                          Cache, StateNodePathString, S.Assert<TargetI[J]>
-                                        >
-                                    }
-                                  : TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<TargetI>>
-                              : never
-                        }[A.Cast<number, keyof Target>]
+                      ? | { [I in keyof Target]:
+                              O.Prop<Target[I], "target"> extends infer TargetI
+                                ? TargetI extends A.Tuple<A.String>
+                                    ? { [J in keyof TargetI]:
+                                          TargetPathString.ResolveWithStateNode<
+                                            Cache, StateNodePathString, S.Assert<TargetI[J]>
+                                          >
+                                      }
+                                    : TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<TargetI>>
+                                : never
+                          }[A.Cast<number, keyof Target>]
+                        | (Target extends A.Tuple<{ cond: any }> ? StateNodePathString : never)
                       : never :
                   Target extends A.Tuple<A.String>
                     ? { [K in keyof Target]:
@@ -517,9 +518,10 @@ namespace MachineDefinition {
               on: { B: [{ target: ["c.c1", "#bar"] }, { target: ".p" }], C: ".p" },
               initial: "p",
               states: {
-                p: { on: { XYZ: "#foo.q" } },
+                p: { on: { XYZ: { target: "#foo.q", cond: any } } },
                 q: {}
-              }
+              },
+              always: [{ target: "#bar", cond: any }, { target: "a" }]
             },
             c: {
               type: "parallel",
@@ -530,12 +532,12 @@ namespace MachineDefinition {
               always: { target: ["#foo"] }
             }
           },
-          always: [{ target: "#foo.q" }, { target: "#foo" }]
+          always: [{ target: "#foo.q", cond: any }, { target: "#foo", cond: any }]
         }>,
-        { "": { [Always.$$Event]: "b.q" | "b" }
+        { "": { [Always.$$Event]: "b.q" | "b" | "" }
         , "a": { A: "b" }
-        , "b": { B:  ["c.c1", "c.c2"] | "b.p", C: "b.p" }
-        , "b.p": { XYZ: "b.q" }
+        , "b": { B:  ["c.c1", "c.c2"] | "b.p", C: "b.p", [Always.$$Event]: "c.c2" | "a" }
+        , "b.p": { XYZ: "b.q" | "b.p" }
         , "b.q": {}
         , "c": { [Always.$$Event]: ["b"] }
         , "c.c1": { X: undefined }
@@ -591,7 +593,7 @@ namespace MachineDefinition {
               Cache, 
               InitialStateNodePathString,
               Always.$$Event
-            >
+            > 
         : Event extends keyof EventMap
             ? EventMap[Event] extends undefined ? never :
               EventMap[Event] extends any
