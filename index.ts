@@ -492,10 +492,11 @@ namespace MachineDefinition {
           }[keyof States]>
       >
 
-    type TestOf<D extends A.Object> = StaticTransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
+    type TestStaticTransitionMapOf<D extends A.Object> = StaticTransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
+
     Test.checks([
       Test.check<
-        TestOf<{
+        TestStaticTransitionMapOf<{
           initial: "enabled",
           states: {
             enabled: { on: { DISABLE: "#foo" } },
@@ -509,7 +510,7 @@ namespace MachineDefinition {
         Test.Pass
       >(),
       Test.check<
-        TestOf<{
+        TestStaticTransitionMapOf<{
           initial: "a",
           states: {
             a: { on: { A: "#foo" } },
@@ -556,54 +557,80 @@ namespace MachineDefinition {
       Cache extends A.Object,
       InitialStateNodePathString extends A.String,
       Event extends A.String | Always.$$Event | null,
+      VisitedStateNodePathStrings extends A.Tuple<A.String> = [],
       InitialStateNode extends A.Object = O.Assert<O.Path<Definition, NodePathString.ToPath<InitialStateNodePathString>>>,
       Initial extends A.String | undefined = A.Cast<O.Prop<InitialStateNode, "initial">, A.String | undefined>,
       StateNodeType = O.Prop<InitialStateNode, "type", "compound">,
       ChildStates = O.Prop<InitialStateNode, "states">,
       TransitionMap = Cache.Get<Cache, "StaticTransitionMap.Of<Definition>">,
-      EventMap = O.Prop<TransitionMap, InitialStateNodePathString>
+      EventMap = O.Prop<TransitionMap, InitialStateNodePathString>,
+      IsVisited = L.Includes<VisitedStateNodePathStrings, InitialStateNodePathString>,
+      NextVisitedStateNodePathString extends A.Tuple<A.String> =
+        L.Append<VisitedStateNodePathStrings, InitialStateNodePathString>
     > =
-      Event extends null
-        ? | ( Initial extends undefined
-                ? StateNodeType extends "parallel"
-                  ? U.ListOf<keyof ChildStates> extends infer NextStates
-                      ? { [K in keyof NextStates]:
-                            Transition<
-                              Definition,
-                              Cache, 
-                              InitialStateNodePathString extends ""
-                                ? S.Assert<NextStates[K]>
-                                : `${InitialStateNodePathString}.${S.Assert<NextStates[K]>}`,
-                              null
-                            >
-                        }
-                      : never
-                  : InitialStateNodePathString
-                : Transition<
+      IsVisited extends B.True ? 
+        StateNodeType extends "parallel"
+          ? U.ListOf<keyof ChildStates> extends infer NextStates
+            ? { [K in keyof NextStates]:
+                  Transition<
                     Definition,
                     Cache, 
                     InitialStateNodePathString extends ""
-                      ? S.Assert<Initial>
-                      : `${InitialStateNodePathString}.${S.Assert<Initial>}`,
-                    null
+                      ? S.Assert<NextStates[K]>
+                      : `${InitialStateNodePathString}.${S.Assert<NextStates[K]>}`,
+                    null,
+                    NextVisitedStateNodePathString
                   >
-            )
-          | Transition<
+              }
+            : never
+          : InitialStateNodePathString :
+      Event extends null
+        ? ( Always.$$Event extends keyof EventMap
+              ? Transition<
+                  Definition,
+                  Cache, 
+                  InitialStateNodePathString,
+                  Always.$$Event,
+                  VisitedStateNodePathStrings
+                > :
+            Initial extends undefined
+              ? StateNodeType extends "parallel"
+                  ? U.ListOf<keyof ChildStates> extends infer NextStates
+                    ? { [K in keyof NextStates]:
+                          Transition<
+                            Definition,
+                            Cache, 
+                            InitialStateNodePathString extends ""
+                              ? S.Assert<NextStates[K]>
+                              : `${InitialStateNodePathString}.${S.Assert<NextStates[K]>}`,
+                            null,
+                            NextVisitedStateNodePathString
+                          >
+                      }
+                    : never
+                  : InitialStateNodePathString :
+            Transition<
               Definition,
               Cache, 
-              InitialStateNodePathString,
-              Always.$$Event
-            > 
+              InitialStateNodePathString extends ""
+                ? S.Assert<Initial>
+                : `${InitialStateNodePathString}.${S.Assert<Initial>}`,
+              null,
+              NextVisitedStateNodePathString
+            >
+          ) 
         : Event extends keyof EventMap
             ? EventMap[Event] extends undefined ? never :
-              EventMap[Event] extends any
-                ? (EventMap[Event] extends A.Tuple<String> ? EventMap[Event] : [EventMap[Event]]) extends infer NextStates
+              EventMap[Event] extends infer NextState
+                ? NextState extends any 
+                  ? (NextState extends A.Tuple<A.String> ? NextState : [NextState]) extends infer NextStates
                     ? { [K in keyof NextStates]:
-                        Transition<Definition, Cache, S.Assert<NextStates[K]>, null>
+                        Transition<Definition, Cache, S.Assert<NextStates[K]>, null, NextVisitedStateNodePathString>
                       }[A.Cast<number, keyof NextStates>]
                     : never
+                  : never
                 : never
-            : never
+            : never;
 
     type TestTransition<
       D extends A.Object,
@@ -639,7 +666,7 @@ namespace MachineDefinition {
           states: { a: {}, b: {} },
           always: [{ target: "b" }]
         }, "", null>,
-        "a" | "b",
+        "b",
         Test.Pass
       >(),
 
@@ -652,16 +679,17 @@ namespace MachineDefinition {
         Test.Pass
       >(),
 
-
+      
       Test.check<
         TestTransition<{
           type: "parallel",
           states: { a: {}, b: {}, c: {} },
-          always: { target: "c" }
+          always: { target: "c", cond: any }
         }, "", null>,
         ["a", "b", "c"] | "c",
         Test.Pass
       >(),
+      
 
       Test.check<
         TestTransition<{
@@ -669,10 +697,47 @@ namespace MachineDefinition {
           states: { a: {}, b: { always: [{ target: "#foo" }] }, c: { id: "foo" } },
           on: { A: "b" }
         }, "", "A">,
-        "b" | "c",
+        "c",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: {
+            a: { always: { target: "b" } },
+            b: { always: { target: "a" } }
+          }
+        }, "", null>,
+        "a",
+        Test.Pass
+      >(),
+
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: {
+            a: { always: { target: "b" } },
+            b: { always: { target: "a", cond: any } }
+          }
+        }, "", null>,
+        "a" | "b",
         Test.Pass
       >()
+
     ])
+  }
+
+  export namespace TransitionMap {
+    export type Of<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      StaticMap = Cache.Get<Cache, "StaticTransitionMap.Of<Definition>">
+    > =
+      { [State in S.Assert<keyof StaticMap>]:
+          MachineSnapshot.Transition<Definition, Cache, State, null>
+      }
   }
 
   export namespace Implementations {
