@@ -81,11 +81,11 @@ namespace MachineDefinition {
         )
       & { id?: Id.Of<Definition, Implementations, L.Append<Path, "id">, Cache>
         , on?: 
-            { [EventIdentifier in keyof On]:
-                EventIdentifier extends string
-                  ? Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
-                  : "Error: only string identifier allowed"
-            }
+            & { [EventIdentifier in keyof On]:
+                  EventIdentifier extends string
+                    ? Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
+                    : "Error: only string identifier allowed"
+              }
         , always?: Always.Of<Definition, Implementations, L.Append<Path, "always">, Cache>
         }
       
@@ -108,8 +108,12 @@ namespace MachineDefinition {
           | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
+          | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>),
+        IsRedundant = MachineSnapshot.IsRedundantTransition<
+          Definition, Cache, NodePathString.FromPath<StateNodePath>, S.Assert<L.Last<Path>>
+        >
       > =
+        IsRedundant extends B.True ? `Error: this transition is redundant` :
         ( Self extends { target: any } ? never :
             ( Self extends object[] ? never :
               | undefined
@@ -130,6 +134,7 @@ namespace MachineDefinition {
                                   : A.ReadonlyTuple<TargetPathString>
                               )
                         , internal?: boolean
+                        , cond?: any
                         }
                     }>>
                   : {
@@ -148,6 +153,7 @@ namespace MachineDefinition {
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
+          , cond?: any
           };
   }
 
@@ -166,8 +172,11 @@ namespace MachineDefinition {
           | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
           | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>)
+          | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>),
+        IsRedundant = MachineSnapshot.IsRedundantTransition<
+            Definition, Cache, NodePathString.FromPath<StateNodePath>, Always.$$Event>
       > =
+        IsRedundant extends B.True ? `Error: this transition causes infinite loop` :
         ( Self extends { target: any } ? never :
           | ( Self extends A.ReadonlyTuple<A.Object>
                 ? L.ReadonlyOf<L.Assert<{
@@ -180,6 +189,7 @@ namespace MachineDefinition {
                                 : A.ReadonlyTuple<TargetPathString>
                             )
                       , internal?: boolean
+                      , cond?: any
                       }
                   }>>
                 : A.ReadonlyTuple<{
@@ -198,6 +208,7 @@ namespace MachineDefinition {
                   : A.ReadonlyTuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
+          , cond?: any
           };
 
     export declare const $$Event: unique symbol;
@@ -315,6 +326,7 @@ namespace MachineDefinition {
         SelfResolved extends A.ReadonlyTuple<A.String> =
           A.Cast<{ [I in keyof Self]:
             TargetPathString.ResolveWithStateNode<
+              Definition,
               Cache,
               StateNodePathString,
               S.Assert<Self[I]>
@@ -370,39 +382,43 @@ namespace MachineDefinition {
 
   export namespace TargetPathString {
     export type ResolveWithStateNode<
+      Definition extends A.Object,
       Cache extends A.Object,
       StateNodePathString extends string,
-      TargetPathString extends string
+      TargetPathString extends string,
+      SiblingStateIdentifier = keyof O.Prop<O.Path<Definition, NodePathString.ToPath<StateNodePathString>>, "states">
     > =
       S.Assert<
-        S.DoesStartWith<TargetPathString, "#"> extends B.True ?
-          S.DoesContain<TargetPathString, "."> extends B.True
-            ? TargetPathString extends `#${infer Id}.${infer RestPath}`
-                ? O.KeyWithValue<
-                    O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
-                    Id
-                  > extends infer IdNodePath
-                    ? IdNodePath extends "" ? RestPath : `${S.Assert<IdNodePath>}.${RestPath}`
-                    : never
-                : never
-            : O.KeyWithValue<
-                O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
-                S.Shift<TargetPathString>
-              > :
-        S.DoesStartWith<TargetPathString, "."> extends B.True ?
-          StateNodePathString extends ""
-            ? S.Shift<TargetPathString>
-            : `${StateNodePathString}${TargetPathString}` :
-        B.Not<S.DoesContain<TargetPathString, ".">> extends B.True ?
-          StateNodePathString extends ""
-            ? TargetPathString
-            : L.Join<
-                L.Append<
-                  L.Pop<S.Split<StateNodePathString, ".">>,
-                  TargetPathString
-                >, "."
-              > :
-        TargetPathString
+        S.DoesStartWith<TargetPathString, "#"> extends B.True
+          ? S.DoesContain<TargetPathString, "."> extends B.True
+              ? TargetPathString extends `#${infer Id}.${infer RestPath}`
+                  ? O.KeyWithValue<
+                      O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                      Id
+                    > extends infer IdNodePath
+                      ? IdNodePath extends "" ? RestPath : `${S.Assert<IdNodePath>}.${RestPath}`
+                      : never
+                  : never
+              : O.KeyWithValue<
+                  O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                  S.Shift<TargetPathString>
+                > :
+        S.DoesStartWith<TargetPathString, "."> extends B.True
+          ? StateNodePathString extends ""
+              ? S.Shift<TargetPathString>
+              : `${StateNodePathString}${TargetPathString}` :
+        B.Not<S.DoesContain<TargetPathString, ".">> extends B.True
+          ? StateNodePathString extends ""
+              ? TargetPathString :
+            TargetPathString extends SiblingStateIdentifier
+              ? L.Join<
+                  L.Append<
+                    L.Pop<S.Split<StateNodePathString, ".">>,
+                    TargetPathString
+                  >, "."
+                > :
+            TargetPathString
+        : TargetPathString
       >
   }
 
@@ -471,19 +487,19 @@ namespace MachineDefinition {
                                 ? TargetI extends A.Tuple<A.String>
                                     ? { [J in keyof TargetI]:
                                           TargetPathString.ResolveWithStateNode<
-                                            Cache, StateNodePathString, S.Assert<TargetI[J]>
+                                            Definition, Cache, StateNodePathString, S.Assert<TargetI[J]>
                                           >
                                       }
-                                    : TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<TargetI>>
+                                    : TargetPathString.ResolveWithStateNode<Definition, Cache, StateNodePathString, S.Assert<TargetI>>
                                 : never
                           }[A.Cast<number, keyof Target>]
                         | (Target extends A.Tuple<{ cond: any }> ? StateNodePathString : never)
                       : never :
                   Target extends A.Tuple<A.String>
                     ? { [K in keyof Target]:
-                          TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<Target[K]>>
+                          TargetPathString.ResolveWithStateNode<Definition, Cache, StateNodePathString, S.Assert<Target[K]>>
                       } :
-                  TargetPathString.ResolveWithStateNode<Cache, StateNodePathString, S.Assert<Target>>
+                  TargetPathString.ResolveWithStateNode<Definition, Cache, StateNodePathString, S.Assert<Target>>
                 : never
             }
           }
@@ -545,7 +561,27 @@ namespace MachineDefinition {
         , "c.c2": {}
         },
         Test.Pass
-      >()
+      >(),
+
+      Test.check<TestStaticTransitionMapOf<{
+        initial: "a",
+        states: {
+          a: { on: { X: { target: "#foo" } } },
+          b: {
+            id: "foo",
+            initial: "x",
+            states: {
+              x: { always: { target: "a" } }
+            }
+          }
+        }
+      }>,
+      { "": {}
+      , "a": { X: "b" }
+      , "b": {}
+      , "b.x": { [Always.$$Event]: "a" }
+      },
+      Test.Pass>()
     ])
   }
 
@@ -632,7 +668,7 @@ namespace MachineDefinition {
                 : never
             : never;
 
-    type TestTransition<
+    export type TestTransition<
       D extends A.Object,
       I extends A.String,
       E extends A.String | Always.$$Event | null
@@ -728,6 +764,8 @@ namespace MachineDefinition {
 
     ])
 
+    
+
 
     export type IsRedundantTransition<
       Definition extends A.Object,
@@ -735,12 +773,13 @@ namespace MachineDefinition {
       InitialStateNodePathString extends A.String,
       Event extends A.String | Always.$$Event | null
     > =
+      A.String extends InitialStateNodePathString ? B.Boolean :
       A.Equals<
         InitialStateNodePathString,
         Transition<Definition, Cache, InitialStateNodePathString, Event>
       >
 
-    type TestIsRedundantTransition<
+    export type TestIsRedundantTransition<
       Definition extends A.Object, 
       InitialStateNodePathString extends A.String,
       Event extends A.String | Always.$$Event | null
@@ -781,7 +820,26 @@ namespace MachineDefinition {
         }, "a", "X">,
         B.False,
         Test.Pass
+      >(),
+
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { on: { X: { target: "#foo" } } },
+            b: {
+              id: "foo",
+              initial: "x",
+              states: {
+                x: { always: { target: "a" } }
+              }
+            }
+          }
+        }, "a", "X">,
+        B.True,
+        Test.Pass
       >()
+      
     ])
   }
 
