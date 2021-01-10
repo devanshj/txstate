@@ -1,4 +1,4 @@
 /node_modules
 /updates-stuff
 /isolated-tests/node_modules
-/isolated-test/txstate.d.ts
+/isolated-tests/txstate.d.ts
