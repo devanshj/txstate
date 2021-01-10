@@ -20,23 +20,25 @@ namespace MachineDefinition {
     export type Get<
       Cache,
       Key extends
-        | "TargetPath.OfId.WithRoot<Definition>"
-        | "TargetPath.WithRoot<Definition>"
-        | "IdMap.WithRoot<Definition>"
-        | "StaticTransitionMap.Of<Definition>"
+        | "TargetPath.OfId"
+        | "TargetPath"
+        | "IdMap"
+        | "StaticTransitionMap"
+        | "TransitionMap"
     > =
       O.Prop<Cache, Key>
 
     export type Of<Definition extends A.Object, Implementations extends A.Object> =
-      { "TargetPath.OfId.WithRoot<Definition>": TargetPath.OfId.WithRoot<Definition>
-      , "TargetPath.WithRoot<Definition>": TargetPath.WithRoot<Definition>
-      , "IdMap.WithRoot<Definition>": IdMap.WithRoot<Definition>
-      } extends infer PartialCache
-        ? & PartialCache 
-          & { "StaticTransitionMap.Of<Definition>":
-                O.Has<TXStateFlags, "noTransitionMap"> extends B.True ? any :
-                StaticTransitionMap.Of<Definition, Implementations, [], O.Assert<PartialCache>>
-            }
+      { "TargetPath.OfId": TargetPath.OfId.WithRoot<Definition>
+      , "TargetPath": TargetPath.WithRoot<Definition>
+      , "IdMap": IdMap.WithRoot<Definition>
+      } extends infer Cache1
+        ? ( & Cache1 
+            & { "StaticTransitionMap": StaticTransitionMap.Of<Definition, Implementations, [], O.Assert<Cache1>> }
+          ) extends infer Cache2
+              ? & Cache2
+                & { "TransitionMap": TransitionMap.Of<Definition, O.Assert<Cache2>> }
+              : never
         : never
   }
 
@@ -87,6 +89,9 @@ namespace MachineDefinition {
                     : "Error: only string identifier allowed"
               }
         , always?: Always.Of<Definition, Implementations, L.Append<Path, "always">, Cache>
+        , entry?: Entry.Of<Definition, Implementations, L.Append<Path, "entry">, Cache>
+        , __debugger?:
+            { __Cache?: Partial<Cache> }
         }
       
     export type Any = A.Object;
@@ -106,8 +111,8 @@ namespace MachineDefinition {
         TargetPathString =
           | keyof O.Prop<StateNode, "states">
           | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
           | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>),
         IsRedundant = MachineSnapshot.IsRedundantTransition<
           Definition, Cache, NodePathString.FromPath<StateNodePath>, S.Assert<L.Last<Path>>
@@ -170,8 +175,8 @@ namespace MachineDefinition {
         TargetPathString =
           | keyof O.Prop<StateNode, "states">
           | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.WithRoot<Definition>"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
           | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>),
         IsRedundant = MachineSnapshot.IsRedundantTransition<
             Definition, Cache, NodePathString.FromPath<StateNodePath>, Always.$$Event>
@@ -393,14 +398,14 @@ namespace MachineDefinition {
           ? S.DoesContain<TargetPathString, "."> extends B.True
               ? TargetPathString extends `#${infer Id}.${infer RestPath}`
                   ? O.KeyWithValue<
-                      O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                      O.Assert<Cache.Get<Cache, "IdMap">>,
                       Id
                     > extends infer IdNodePath
                       ? IdNodePath extends "" ? RestPath : `${S.Assert<IdNodePath>}.${RestPath}`
                       : never
                   : never
               : O.KeyWithValue<
-                  O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>,
+                  O.Assert<Cache.Get<Cache, "IdMap">>,
                   S.Shift<TargetPathString>
                 > :
         S.DoesStartWith<TargetPathString, "."> extends B.True
@@ -449,7 +454,7 @@ namespace MachineDefinition {
       Path extends readonly PropertyKey[],
       Cache extends A.Object,
       Self = O.Path<Definition, Path>,
-      IdMap extends A.Object = O.Assert<Cache.Get<Cache, "IdMap.WithRoot<Definition>">>
+      IdMap extends A.Object = O.Assert<Cache.Get<Cache, "IdMap">>
     > =
       Self extends string
         ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
@@ -598,7 +603,7 @@ namespace MachineDefinition {
       Initial extends A.String | undefined = A.Cast<O.Prop<InitialStateNode, "initial">, A.String | undefined>,
       StateNodeType = O.Prop<InitialStateNode, "type", "compound">,
       ChildStates = O.Prop<InitialStateNode, "states">,
-      TransitionMap = Cache.Get<Cache, "StaticTransitionMap.Of<Definition>">,
+      TransitionMap = Cache.Get<Cache, "StaticTransitionMap">,
       EventMap = O.Prop<TransitionMap, InitialStateNodePathString>,
       IsVisited = L.Includes<VisitedStateNodePathStrings, InitialStateNodePathString>,
       NextVisitedStateNodePathString extends A.Tuple<A.String> =
@@ -847,11 +852,38 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Cache extends A.Object,
-      StaticMap = Cache.Get<Cache, "StaticTransitionMap.Of<Definition>">
+      StaticMap = Cache.Get<Cache, "StaticTransitionMap">
     > =
-      { [State in S.Assert<keyof StaticMap>]:
-          MachineSnapshot.Transition<Definition, Cache, State, null>
+      { [State in keyof StaticMap]:
+          { [Event in keyof StaticMap[State]]:
+              MachineSnapshot.Transition<
+                Definition, Cache, S.Assert<State>, A.Cast<Event, A.String | Always.$$Event>
+              >
+          }
       }
+  }
+
+
+  export namespace Entry {
+    export type Of<
+      Definition extends A.Object,
+      Implementations extends A.Object,
+      Path extends readonly PropertyKey[],
+      Cache extends A.Object,
+      Self = O.Assert<O.Path<Definition, Path>>,
+      StateNodePathString extends A.String = NodePathString.FromPath<L.Pop<Path>>,
+      TransitionMap = Cache.Get<Cache, "TransitionMap">,
+      EventIdentifier = U.Exclude<{ [State in keyof TransitionMap]:
+          { [Event in keyof TransitionMap[State]]:
+              StateNodePathString extends TransitionMap[State][Event]
+                ? Event
+                : never
+          }[keyof TransitionMap[State]]
+      }[keyof TransitionMap], Always.$$Event>
+    > =
+      ( context: "TODO"
+      , event: EventIdentifier extends any ? { type: EventIdentifier } : never
+      ) => void
   }
 
   export namespace Implementations {
