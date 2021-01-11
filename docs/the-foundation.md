@@ -8,7 +8,7 @@ type Of<
   Implementations extends A.Object,
   Path extends A.ReadonlyTuple<PropertyKey>,
   Cache extends A.Object,
-  Self = O.Assert<O.Path<Definition, Path>>
+  Self = O.Path<Definition, Path>
 >
 ```
 
@@ -63,6 +63,8 @@ type StateNode<N> = {
     [S in keyof Prop<N, "states">>]: StateNode<Prop<Prop<N, "states">, S>
   }
 }
+
+type Prop<T, K> = K extends keyof T ? T[K] : never;
 ```
 
 At this point I was like whoa... this is weirdly recursive and it works! A little more rewrite...
@@ -76,6 +78,8 @@ type StateNode<N> = {
 type States<S> = {
   [K in keyof S]: Node<Prop<S, K>
 }
+
+type Prop<T, K> = K extends keyof T ? T[K] : never;
 ```
 
 Can you see something here? Let me show you...
@@ -87,8 +91,10 @@ type StateNode<Self> = {
   states: States<Prop<Self, "states">>
 }
 type States<Self> = {
-  [K in keyof Self]: Node<Prop<Self, K>
+  [K in keyof Self]: StateNode<Prop<Self, K>
 }
+
+type Prop<T, K> = K extends keyof T ? T[K] : never;
 ```
 
 Each piece receives it's own "self" and reconstructs it with constraints... I tried to make this pattern work for initial too but...
@@ -103,6 +109,8 @@ type Initial<Self> = ??? // how to get keyof states here?
 type States<Self> = {
   [K in keyof Self]: StateNode<Prop<Self, K>
 }
+
+type Prop<T, K> = K extends keyof T ? T[K] : never;
 ```
 
 I realized this shortcoming of this technique... Then I don't remember what happened but I came up with this... Also btw let me tell you the journey was not so simple or linear at all, heck I don't even remember how it was, so what I'm saying is probably 60% of how it happened but nonetheless I think it's working for the story telling xD... Okay yeah back to what I came up with...
