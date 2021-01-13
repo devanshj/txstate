@@ -46,7 +46,7 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
-      Path extends readonly PropertyKey[],
+      Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object = Cache.Of<Definition, Implementations>,
       Self extends A.Object = O.Assert<O.Path<Definition, Path>>,
       Initial = O.Prop<Self, "initial">,
@@ -103,16 +103,16 @@ namespace MachineDefinition {
     export type Of<
         Definition extends A.Object,
         Implementations extends A.Object,
-        Path extends readonly PropertyKey[],
+        Path extends A.ReadonlyTuple<PropertyKey>,
         Cache extends A.Object,
         Self = O.Assert<O.Path<Definition, Path>>,
-        StateNodePath extends readonly PropertyKey[] = L.Pop<L.Pop<Path>>,
+        StateNodePath extends A.ReadonlyTuple<PropertyKey> = A.Cast<L.Pop<L.Pop<Path>>, A.ReadonlyTuple<PropertyKey>>,
         StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
         TargetPathString =
           | keyof O.Prop<StateNode, "states">
-          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, A.ReadonlyTuple<PropertyKey>>, ".">}`
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId"> extends infer X ? X : never, A.ReadonlyTuple<PropertyKey>>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath"> extends infer X ? X : never, A.ReadonlyTuple<PropertyKey>>, ".">
           | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>),
         IsRedundant = MachineSnapshot.IsRedundantTransition<
           Definition, Cache, NodePathString.FromPath<StateNodePath>, S.Assert<L.Last<Path>>
@@ -167,16 +167,16 @@ namespace MachineDefinition {
     export type Of<
         Definition extends A.Object,
         Implementations extends A.Object,
-        Path extends readonly PropertyKey[],
+        Path extends A.ReadonlyTuple<PropertyKey>,
         Cache extends A.Object,
         Self = O.Assert<O.Path<Definition, Path>>,
-        StateNodePath extends readonly PropertyKey[] = L.Pop<Path>, // TODO: only diff, try to reuse Transition.Of
+        StateNodePath extends A.ReadonlyTuple<PropertyKey> = L.Pop<Path>, // TODO: only diff, try to reuse Transition.Of
         StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
         TargetPathString =
           | keyof O.Prop<StateNode, "states">
-          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, readonly PropertyKey[]>, ".">}`
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
-          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath"> extends infer X ? X : never, readonly PropertyKey[]>, ".">
+          | `.${L.Join<A.Cast<TargetPath.WithRoot<StateNode> extends infer X ? X : never, A.ReadonlyTuple<PropertyKey>>, ".">}`
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath.OfId"> extends infer X ? X : never, A.ReadonlyTuple<PropertyKey>>, ".">
+          | L.Join<A.Cast<Cache.Get<Cache, "TargetPath"> extends infer X ? X : never, A.ReadonlyTuple<PropertyKey>>, ".">
           | (StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>>),
         IsRedundant = MachineSnapshot.IsRedundantTransition<
             Definition, Cache, NodePathString.FromPath<StateNodePath>, Always.$$Event>
@@ -240,7 +240,7 @@ namespace MachineDefinition {
     export type IsAncestor<A extends string, B extends string> =
       IsDescendant<B, A>
 
-    export type FromPath<Path extends readonly PropertyKey[]> =
+    export type FromPath<Path extends A.ReadonlyTuple<PropertyKey>> =
       Path["length"] extends 0 ? "" :
       S.Replace<L.Join<Path, ".">, "states.", "">
 
@@ -268,8 +268,8 @@ namespace MachineDefinition {
 
     export type WithRoot<
       StateNode extends A.Object,
-      Accumulator extends readonly PropertyKey[] = [],
-      States extends A.Object = O.Assert<O.Prop<StateNode, "states", A.Object>>,
+      Accumulator extends A.ReadonlyTuple<PropertyKey> = [],
+      States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>,
       ChildStateIdentifier extends keyof States = keyof States
     > =
       | (A.Equals<Accumulator, []> extends B.True ? never : Accumulator)
@@ -294,7 +294,7 @@ namespace MachineDefinition {
                 [ PathForId
                 , ...(
                     TargetPath.WithRoot<StateNode> extends infer X
-                      ? A.IsNever<X> extends B.True ? [] : A.Cast<X, readonly PropertyKey[]>
+                      ? A.IsNever<X> extends B.True ? [] : A.Cast<X, A.ReadonlyTuple<PropertyKey>>
                       : never
                   )
                 ]
@@ -323,9 +323,9 @@ namespace MachineDefinition {
       export type OfWithStateNodePath<
         Definition extends A.Object,
         Implementations extends A.Object,
-        Path extends readonly PropertyKey[],
+        Path extends A.ReadonlyTuple<PropertyKey>,
         Cache extends A.Object,
-        StateNodePath extends readonly PropertyKey[],
+        StateNodePath extends A.ReadonlyTuple<PropertyKey>,
         Self extends A.ReadonlyTuple<string> = A.Cast<O.Path<Definition, Path>, A.ReadonlyTuple<string>>,
         StateNodePathString extends A.String = NodePathString.FromPath<StateNodePath>,
         SelfResolved extends A.ReadonlyTuple<A.String> =
@@ -451,7 +451,7 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
-      Path extends readonly PropertyKey[],
+      Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object,
       Self = O.Path<Definition, Path>,
       IdMap extends A.Object = O.Assert<Cache.Get<Cache, "IdMap">>
@@ -467,7 +467,7 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Implementation extends A.Object,
-      Path extends readonly PropertyKey[],
+      Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object,
       StateNode = O.Path<Definition, Path>,
       StateNodePathString extends A.String = NodePathString.FromPath<Path>,
@@ -868,7 +868,7 @@ namespace MachineDefinition {
     export type Of<
       Definition extends A.Object,
       Implementations extends A.Object,
-      Path extends readonly PropertyKey[],
+      Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object,
       Self = O.Assert<O.Path<Definition, Path>>,
       StateNodePathString extends A.String = NodePathString.FromPath<L.Pop<Path>>,
