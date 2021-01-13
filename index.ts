@@ -1,19 +1,15 @@
 import { O, A, U, L, B, Test, N } from "ts-toolbelt";
 
 export declare const Machine: {
-  <D extends MachineDefinition.Of<D, {}>>(definition: A.InferNarrowest<D>): D
-  <D extends MachineDefinition.Of<D, I>, I extends MachineDefinition.Implementations.Of<D, I>>(
-    definition: D,
-    implementations: I
-  ): MachineHandle.Of<D, I>
+  <D extends MachineDefinition.Of<D>>(definition: A.InferNarrowest<D>): D
 }
 
 export interface TXStateFlags {}
 
 namespace MachineDefinition {
-  export type Of<Definition extends A.Object, Implementations extends A.Object> =
+  export type Of<Definition extends A.Object> =
     O.Has<TXStateFlags, "noChecks"> extends B.True ? object :
-    & StateNode.Of<Definition, Implementations, []>
+    & StateNode.Of<Definition, []>
     & { context?: "TODO" };
 
   export namespace Cache {
@@ -28,13 +24,13 @@ namespace MachineDefinition {
     > =
       O.Prop<Cache, Key>
 
-    export type Of<Definition extends A.Object, Implementations extends A.Object> =
+    export type Of<Definition extends A.Object> =
       { "TargetPath.OfId": TargetPath.OfId.WithRoot<Definition>
       , "TargetPath": TargetPath.WithRoot<Definition>
       , "IdMap": IdMap.WithRoot<Definition>
       } extends infer Cache1
         ? ( & Cache1 
-            & { "StaticTransitionMap": StaticTransitionMap.Of<Definition, Implementations, [], O.Assert<Cache1>> }
+            & { "StaticTransitionMap": StaticTransitionMap.Of<Definition, [], O.Assert<Cache1>> }
           ) extends infer Cache2
               ? & Cache2
                 & { "TransitionMap": TransitionMap.Of<Definition, O.Assert<Cache2>> }
@@ -45,9 +41,8 @@ namespace MachineDefinition {
   export namespace StateNode {
     export type Of<
       Definition extends A.Object,
-      Implementations extends A.Object,
       Path extends A.ReadonlyTuple<PropertyKey>,
-      Cache extends A.Object = Cache.Of<Definition, Implementations>,
+      Cache extends A.Object = Cache.Of<Definition>,
       Self extends A.Object = O.Assert<O.Path<Definition, Path>>,
       Initial = O.Prop<Self, "initial">,
       States = O.Prop<Self, "states">,
@@ -69,7 +64,7 @@ namespace MachineDefinition {
                   StateIdentifier extends string
                     ? S.DoesContain<StateIdentifier, "."> extends B.True
                         ? `Error: identifiers can't have '.' as it's use as a path delimiter`
-                        : StateNode.Of<Definition, Implementations, L.Concat<Path, ["states", StateIdentifier]>, Cache>
+                        : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Cache>
                     : `Error: only string identifiers allowed`
               }
         }
@@ -81,15 +76,15 @@ namespace MachineDefinition {
             { initial?: undefined } :
           { initial: keyof States }
         )
-      & { id?: Id.Of<Definition, Implementations, L.Append<Path, "id">, Cache>
+      & { id?: Id.Of<Definition, L.Append<Path, "id">, Cache>
         , on?: 
             & { [EventIdentifier in keyof On]:
                   EventIdentifier extends string
-                    ? Transition.Of<Definition, Implementations, L.Concat<Path, ["on", EventIdentifier]>, Cache>
+                    ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Cache>
                     : "Error: only string identifier allowed"
               }
-        , always?: Always.Of<Definition, Implementations, L.Append<Path, "always">, Cache>
-        , entry?: Entry.Of<Definition, Implementations, L.Append<Path, "entry">, Cache>
+        , always?: Always.Of<Definition, L.Append<Path, "always">, Cache>
+        , entry?: Entry.Of<Definition, L.Append<Path, "entry">, Cache>
         , __debugger?:
             { __Cache?: Partial<Cache> }
         }
@@ -102,7 +97,6 @@ namespace MachineDefinition {
  
     export type Of<
         Definition extends A.Object,
-        Implementations extends A.Object,
         Path extends A.ReadonlyTuple<PropertyKey>,
         Cache extends A.Object,
         Self = O.Assert<O.Path<Definition, Path>>,
@@ -124,7 +118,7 @@ namespace MachineDefinition {
               | undefined
               | TargetPathString
               | ( Self extends A.ReadonlyTuple<TargetPathString>
-                    ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, Path, Cache, StateNodePath>
+                    ? MultipleTargetPath.OfWithStateNodePath<Definition, Path, Cache, StateNodePath>
                     : A.ReadonlyTuple<TargetPathString>
                 )
             )
@@ -135,7 +129,7 @@ namespace MachineDefinition {
                             | undefined
                             | TargetPathString
                             | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
-                                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
+                                  ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
                                   : A.ReadonlyTuple<TargetPathString>
                               )
                         , internal?: boolean
@@ -154,7 +148,7 @@ namespace MachineDefinition {
             | undefined
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Append<Path, "target">, Cache, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
@@ -166,7 +160,6 @@ namespace MachineDefinition {
  
     export type Of<
         Definition extends A.Object,
-        Implementations extends A.Object,
         Path extends A.ReadonlyTuple<PropertyKey>,
         Cache extends A.Object,
         Self = O.Assert<O.Path<Definition, Path>>,
@@ -190,7 +183,7 @@ namespace MachineDefinition {
                           | undefined
                           | TargetPathString
                           | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
-                                ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
+                                ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
                                 : A.ReadonlyTuple<TargetPathString>
                             )
                       , internal?: boolean
@@ -209,7 +202,7 @@ namespace MachineDefinition {
             | undefined
             | TargetPathString
             | ( Self extends { target: A.ReadonlyTuple<TargetPathString> }
-                  ? MultipleTargetPath.OfWithStateNodePath<Definition, Implementations, L.Append<Path, "target">, Cache, StateNodePath>
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Append<Path, "target">, Cache, StateNodePath>
                   : A.ReadonlyTuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
@@ -322,7 +315,6 @@ namespace MachineDefinition {
   
       export type OfWithStateNodePath<
         Definition extends A.Object,
-        Implementations extends A.Object,
         Path extends A.ReadonlyTuple<PropertyKey>,
         Cache extends A.Object,
         StateNodePath extends A.ReadonlyTuple<PropertyKey>,
@@ -450,7 +442,6 @@ namespace MachineDefinition {
   export namespace Id {
     export type Of<
       Definition extends A.Object,
-      Implementations extends A.Object,
       Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object,
       Self = O.Path<Definition, Path>,
@@ -466,7 +457,6 @@ namespace MachineDefinition {
   export namespace StaticTransitionMap {
     export type Of<
       Definition extends A.Object,
-      Implementation extends A.Object,
       Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object,
       StateNode = O.Path<Definition, Path>,
@@ -509,11 +499,11 @@ namespace MachineDefinition {
             }
           }
         & U.IntersectOf<{ [ChildStateIdentifier in keyof States]: 
-            StaticTransitionMap.Of<Definition, Implementation, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
+            StaticTransitionMap.Of<Definition, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
           }[keyof States]>
       >
 
-    type TestStaticTransitionMapOf<D extends A.Object> = StaticTransitionMap.Of<D, {}, [], Cache.Of<D, {}>>;
+    type TestStaticTransitionMapOf<D extends A.Object> = StaticTransitionMap.Of<D, [], Cache.Of<D>>;
 
     Test.checks([
       Test.check<
@@ -677,7 +667,7 @@ namespace MachineDefinition {
       D extends A.Object,
       I extends A.String,
       E extends A.String | Always.$$Event | null
-    > = Transition<D, Cache.Of<D, {}>, I, E>
+    > = Transition<D, Cache.Of<D>, I, E>
 
     Test.checks([
       Test.check<
@@ -788,7 +778,7 @@ namespace MachineDefinition {
       Definition extends A.Object, 
       InitialStateNodePathString extends A.String,
       Event extends A.String | Always.$$Event | null
-    > = IsRedundantTransition<Definition, Cache.Of<Definition, {}>, InitialStateNodePathString, Event>
+    > = IsRedundantTransition<Definition, Cache.Of<Definition>, InitialStateNodePathString, Event>
 
     Test.checks([
       Test.check<
@@ -867,7 +857,6 @@ namespace MachineDefinition {
   export namespace Entry {
     export type Of<
       Definition extends A.Object,
-      Implementations extends A.Object,
       Path extends A.ReadonlyTuple<PropertyKey>,
       Cache extends A.Object,
       Self = O.Assert<O.Path<Definition, Path>>,
@@ -884,11 +873,6 @@ namespace MachineDefinition {
       ( context: "TODO"
       , event: EventIdentifier extends any ? { type: EventIdentifier } : never
       ) => void
-  }
-
-  export namespace Implementations {
-    export type Of<Definition extends A.Object, Implementations extends A.Object> =
-      {} // TODO;
   }
 }
 
