@@ -444,22 +444,30 @@ namespace MachineDefinition {
 
   
   export namespace IdMap {
-    export type WithRoot<
-        StateNode extends A.Object,
-        PathString extends string = "",
-        Id = O.Prop<StateNode, "id">, 
-        States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
-      > = 
-        & (A.Equals<Id, undefined> extends B.True
-            ? {}
-            : { [_ in PathString]: Id }
-          )
-        & { hasChildStates:
-              U.IntersectOf<{
-                [S in keyof States]: IdMap.WithRoot<O.Assert<States[S]>, PathString extends "" ? S : `${PathString}.${S.Assert<S>}`>
-              }[keyof States]>
-          , else: {}
-          }[A.IsNever<keyof States> extends B.False ? "hasChildStates" : "else"]
+    export type WithRoot<StateNode extends A.Object> = 
+        O.Mergify<O.Assert<U.IntersectOf<_WithRoot<StateNode>>>>
+          
+    type _WithRoot<
+      StateNode extends A.Object,
+      PathString extends string = "",
+      Id = O.Prop<StateNode, "id">, 
+      States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
+    > = 
+      | ( A.IsUndefined<Id> extends B.True ? {} : { [_ in PathString]: Id } )
+      | { [S in keyof States]:
+            _WithRoot<O.Assert<States[S]>, TargetPathString.Append<PathString, S.Assert<S>>>
+        }[keyof States]
+
+    Test.checks([
+      Test.check<
+        IdMap.WithRoot<{ id: "root", states: {
+          a: { states: { a1: {}, a2: {} } },
+          b: { states: { b1: {}, b2: { id: "bar" } } }
+        } }>
+        , { "": "root", "b.b2": "bar" }
+        , Test.Pass
+      >()
+    ])
   }
 
   export namespace Id {
