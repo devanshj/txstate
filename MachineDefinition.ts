@@ -1,0 +1,902 @@
+import { O, A, U, L, B, Test, S } from "./extras";
+
+export default MachineDefinition;
+namespace MachineDefinition {
+  export type Of<Definition extends A.Object> =
+    & StateNode.Of<Definition, []>
+    & { context?: "TODO" };
+
+  export namespace Cache {
+    export type Get<
+      Cache,
+      Key extends
+        | "TargetPathString.OfId"
+        | "TargetPathString"
+        | "IdMap"
+        | "StaticTransitionMap"
+        | "TransitionMap"
+    > =
+      O.Prop<Cache, Key>
+
+    export type Of<Definition extends A.Object> =
+      { "TargetPathString.OfId": TargetPathString.OfIdWithRoot<Definition>
+      , "TargetPathString": TargetPathString.WithRoot<Definition>
+      , "IdMap": IdMap.WithRoot<Definition>
+      } extends infer Cache1
+        ? ( & Cache1 
+            & { "StaticTransitionMap": StaticTransitionMap.Of<Definition, [], O.Assert<Cache1>> }
+          ) extends infer Cache2
+              ? & Cache2
+                & { "TransitionMap": TransitionMap.Of<Definition, O.Assert<Cache2>> }
+              : never
+        : never
+  }
+
+  export namespace StateNode {
+    export type Of<
+      Definition extends A.Object,
+      Path extends A.ReadonlyTuple<PropertyKey>,
+      Cache extends A.Object = Cache.Of<Definition>,
+      Self extends A.Object = O.Assert<O.Path<Definition, Path>>,
+      Initial = O.Prop<Self, "initial">,
+      States = O.Prop<Self, "states">,
+      Type = O.Prop<Self, "type", "compound">,
+      Id = O.Prop<Self, "id">,
+      On = O.Prop<Self, "on">,
+      Always = O.Prop<Self, "always">
+    > =
+      & { type?:
+            | "compound"
+            | "parallel"
+            | "final"
+            | "history"
+            | "atomic"
+        , states?:
+          A.Equals<Type, "atomic"> extends B.True
+            ? "Error: atomic state node can't have states property"
+            : { [StateIdentifier in keyof States]:
+                  StateIdentifier extends string
+                    ? S.DoesContain<StateIdentifier, "."> extends B.True
+                        ? `Error: identifiers can't have '.' as it's use as a path delimiter`
+                        : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Cache>
+                    : `Error: only string identifiers allowed`
+              }
+        }
+      & ( A.Equals<Type, "atomic"> extends B.True ?
+            { initial?: "Error: atomic state node can't have initial property" } :
+          A.Equals<States, undefined> extends B.True ?
+            { initial?: "Error: no states defined" } :
+          A.Equals<Type, "parallel"> extends B.True ?
+            { initial?: undefined } :
+          { initial: keyof States }
+        )
+      & { id?: Id.Of<Definition, L.Append<Path, "id">, Cache>
+        , on?: 
+            & { [EventIdentifier in keyof On]:
+                  EventIdentifier extends string
+                    ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Cache>
+                    : "Error: only string identifier allowed"
+              }
+        , always?: Always.Of<Definition, L.Append<Path, "always">, Cache>
+        , entry?: Entry.Of<Definition, L.Append<Path, "entry">, Cache>
+        , __debugger?:
+            { __Cache?: Partial<Cache> }
+        }
+      
+    export type Any = A.Object;
+
+  }
+
+  export namespace Transition {
+ 
+    export type Of<
+        Definition extends A.Object,
+        Path extends A.ReadonlyTuple<PropertyKey>,
+        Cache extends A.Object,
+        Self = O.Assert<O.Path<Definition, Path>>,
+        StateNodePath extends A.ReadonlyTuple<PropertyKey> = A.Cast<L.Pop<L.Pop<Path>>, A.ReadonlyTuple<PropertyKey>>,
+        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
+        TargetPathString =
+          | ( TargetPathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
+          | ( Cache.Get<Cache, "TargetPathString.OfId"> extends infer X ? S.Assert<X> : never )
+          | ( Cache.Get<Cache, "TargetPathString"> extends infer X ? S.Assert<X> : never )
+          | ( StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>> ),
+        IsRedundant = MachineSnapshot.IsRedundantTransition<
+          Definition, Cache, NodePathString.FromPath<StateNodePath>, S.Assert<L.Last<Path>>
+        >
+      > =
+        IsRedundant extends B.True ? `Error: this transition is redundant` :
+        ( Self extends { target: any } ? never :
+            ( Self extends object[] ? never :
+              | undefined
+              | TargetPathString
+              | ( Self extends A.ReadonlyTuple<TargetPathString>
+                    ? MultipleTargetPath.OfWithStateNodePath<Definition, Path, Cache, StateNodePath>
+                    : A.ReadonlyTuple<TargetPathString>
+                )
+            )
+            | ( Self extends object[]
+                  ? L.ReadonlyOf<L.Assert<{
+                      [K in keyof Self]:
+                        { target?:
+                            | undefined
+                            | TargetPathString
+                            | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                                  ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
+                                  : A.ReadonlyTuple<TargetPathString>
+                              )
+                        , internal?: boolean
+                        , cond?: any
+                        }
+                    }>>
+                  : {
+                      target:
+                        | undefined
+                        | TargetPathString
+                        | A.ReadonlyTuple<TargetPathString>
+                    }[]
+              )
+        )
+        | { target?:
+            | undefined
+            | TargetPathString
+            | ( Self extends { target: A.Tuple<TargetPathString> }
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Append<Path, "target">, Cache, StateNodePath>
+                  : A.Tuple<TargetPathString>
+              )
+          , internal?: boolean // TODO: enforce false for external
+          , cond?: any
+          };
+  }
+
+  export namespace Always {
+ 
+    export type Of<
+        Definition extends A.Object,
+        Path extends A.ReadonlyTuple<PropertyKey>,
+        Cache extends A.Object,
+        Self = O.Assert<O.Path<Definition, Path>>,
+        StateNodePath extends A.ReadonlyTuple<PropertyKey> = L.Pop<Path>, // TODO: only diff, try to reuse Transition.Of
+        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
+        TargetPathString =
+          | ( TargetPathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
+          | ( Cache.Get<Cache, "TargetPathString.OfId"> extends infer X ? S.Assert<X> : never )
+          | ( Cache.Get<Cache, "TargetPathString"> extends infer X ? S.Assert<X> : never )
+          | ( StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>> ),
+        IsRedundant = MachineSnapshot.IsRedundantTransition<
+            Definition, Cache, NodePathString.FromPath<StateNodePath>, Always.$$Event>
+      > =
+        IsRedundant extends B.True ? `Error: this transition causes infinite loop` :
+        ( Self extends { target: any } ? never :
+          | ( Self extends A.ReadonlyTuple<A.Object>
+                ? L.ReadonlyOf<L.Assert<{
+                    [K in keyof Self]:
+                      { target?:
+                          | undefined
+                          | TargetPathString
+                          | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                                ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Cache, StateNodePath>
+                                : A.ReadonlyTuple<TargetPathString>
+                            )
+                      , internal?: boolean
+                      , cond?: any
+                      }
+                  }>>
+                : A.ReadonlyTuple<{
+                    target:
+                      | undefined
+                      | TargetPathString
+                      | A.ReadonlyTuple<TargetPathString>
+                  }>
+            )
+        )
+        | { target?:
+            | undefined
+            | TargetPathString
+            | ( Self extends { target: A.ReadonlyTuple<TargetPathString> }
+                  ? MultipleTargetPath.OfWithStateNodePath<Definition, L.Append<Path, "target">, Cache, StateNodePath>
+                  : A.ReadonlyTuple<TargetPathString>
+              )
+          , internal?: boolean // TODO: enforce false for external
+          , cond?: any
+          };
+
+    export declare const $$Event: unique symbol;
+    export type $$Event = typeof $$Event
+  }
+
+  // NodePathString = Resolved TargetPathString
+  export namespace NodePathString {
+    export type RegionRoot<
+      NodePathString extends string,
+      RootNode extends A.Object,
+      NodePath extends string[] = NodePathString.ToPath<NodePathString>,
+      ParentNodePath extends string[] = L.Pop<L.Pop<NodePath>>,
+      ParentNode extends A.Object = O.Assert<O.Path<RootNode, ParentNodePath>>,
+      ParentNodePathString extends string = NodePathString.FromPath<ParentNodePath>
+    > =
+      O.Prop<ParentNode, "type", "compound"> extends "parallel" ? NodePath :
+      ParentNodePath["length"] extends 0 ? [] :
+      RegionRoot<ParentNodePathString, RootNode>
+
+    export type IsDescendant<A extends string, B extends string> =
+      S.DoesStartWith<B, A>
+
+    export type IsAncestor<A extends string, B extends string> =
+      IsDescendant<B, A>
+
+    export type FromPath<Path extends A.ReadonlyTuple<PropertyKey>> =
+      Path["length"] extends 0 ? "" :
+      S.Replace<L.Join<Path, ".">, "states.", "">
+
+    Test.checks([
+      Test.check<FromPath<[]>, "", Test.Pass>(),
+      Test.check<FromPath<["states", "a"]>, "a", Test.Pass>(),
+      Test.check<FromPath<["states", "a", "states", "b"]>, "a.b", Test.Pass>()
+    ])
+
+    export type ToPath<PathString extends string> =
+      PathString extends "" ? [] :
+      ["states", ...S.Split<S.Replace<PathString, ".", ".states.">, ".">]
+
+    Test.checks([
+      Test.check<ToPath<"">, [], Test.Pass>(),
+      Test.check<ToPath<"a">, ["states", "a"], Test.Pass>(),
+      Test.check<ToPath<"a.b">, ["states", "a", "states", "b"], Test.Pass>(),
+    ])
+
+  }
+
+  export namespace MultipleTargetPath {
+
+      /*
+      const regionRoot = node =>
+        !node.parent ? node :
+        node.parent.type === "parallel" ? node :
+        regionRoot(node.parent)
+  
+      const isMultipleTargetValid = targets =>
+        targets.some(i => target.some(j => isAncestor(i, j))) ? false :
+        (roots => roots.length !== deduplicated(roots).length)(targets.map(regionRoot)) ? false :
+        true
+      */
+  
+      export type OfWithStateNodePath<
+        Definition extends A.Object,
+        Path extends A.ReadonlyTuple<PropertyKey>,
+        Cache extends A.Object,
+        StateNodePath extends A.ReadonlyTuple<PropertyKey>,
+        Self extends A.ReadonlyTuple<string> = A.Cast<O.Path<Definition, Path>, A.ReadonlyTuple<string>>,
+        StateNodePathString extends A.String = NodePathString.FromPath<StateNodePath>,
+        SelfResolved extends A.ReadonlyTuple<A.String> =
+          A.Cast<{ [I in keyof Self]:
+            TargetPathString.ResolveWithStateNode<
+              Definition,
+              Cache,
+              StateNodePathString,
+              S.Assert<Self[I]>
+            >
+          }, A.ReadonlyTuple<string>>,
+        RegionRootOf extends A.ReadonlyTuple<A.Tuple<A.String>> =
+          A.Cast<{ [I in keyof SelfResolved]:
+            NodePathString.RegionRoot<
+              S.Assert<SelfResolved[I]>,
+              Definition
+            >
+          }, A.ReadonlyTuple<A.Tuple<A.String>>>
+      > =
+        L.ReadonlyOf<L.Assert<{ [I in keyof Self]:
+          [ | ({ [J in keyof Self]:
+                  J extends I ? never : 
+                  NodePathString.IsDescendant<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
+                    ? Self[J]
+                    : never
+              }[number] extends infer Ancestors
+                ? A.IsNever<Ancestors> extends B.False
+                    ? `Error: ${S.Assert<Self[I]>} is descendant of ${S.Commas<S.Assert<Ancestors>>}`
+                    : never
+                : never)
+            | ({ [J in keyof Self]:
+                  J extends I ? never : 
+                  NodePathString.IsAncestor<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
+                    ? Self[J]
+                    : never
+              }[number] extends infer Descendants
+                ? A.IsNever<Descendants> extends B.False
+                    ? `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}`
+                    : never
+                : never)
+          , { [J in keyof Self]:
+                J extends I ? never :
+                O.Prop<RegionRootOf, I> extends O.Prop<RegionRootOf, J> ? Self[J] :
+                never
+            }[number] extends infer NodesWithCommonRegionRoot
+              ? A.IsNever<NodesWithCommonRegionRoot> extends B.False
+                  ? `Error: ${S.Assert<Self[I]>} has region root same as that of ${
+                      S.Commas<S.Assert<NodesWithCommonRegionRoot>>
+                    }`
+                  : never
+              : never
+          ] extends [infer AncestryError, infer RegionRootError]
+            ? A.IsNever<AncestryError> extends B.False ? AncestryError :
+              A.IsNever<RegionRootError> extends B.False ? RegionRootError :
+              Self[I]
+            : never
+        }>>
+    }
+
+  export namespace TargetPathString {
+    export type ResolveWithStateNode<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      StateNodePathString extends string,
+      TargetPathString extends string,
+      SiblingStateIdentifier = keyof O.Prop<O.Path<Definition, NodePathString.ToPath<StateNodePathString>>, "states">
+    > =
+      S.Assert<
+        S.DoesStartWith<TargetPathString, "#"> extends B.True
+          ? S.DoesContain<TargetPathString, "."> extends B.True
+              ? TargetPathString extends `#${infer Id}.${infer RestPath}`
+                  ? O.KeyWithValue<
+                      O.Assert<Cache.Get<Cache, "IdMap">>,
+                      Id
+                    > extends infer IdNodePath
+                      ? TargetPathString.Append<S.Assert<IdNodePath>, RestPath>
+                      : never
+                  : never
+              : O.KeyWithValue<
+                  O.Assert<Cache.Get<Cache, "IdMap">>,
+                  S.Shift<TargetPathString>
+                > :
+        S.DoesStartWith<TargetPathString, "."> extends B.True
+          ? StateNodePathString extends ""
+              ? S.Shift<TargetPathString>
+              : `${StateNodePathString}${TargetPathString}` :
+        B.Not<S.DoesContain<TargetPathString, ".">> extends B.True
+          ? StateNodePathString extends ""
+              ? TargetPathString :
+            TargetPathString extends SiblingStateIdentifier
+              ? L.Join<
+                  L.Append<
+                    L.Pop<S.Split<StateNodePathString, ".">>,
+                    TargetPathString
+                  >, "."
+                > :
+            TargetPathString
+        : TargetPathString
+      >
+
+    export type WithRoot<
+      StateNode extends A.Object,
+      StateNodePathString extends A.String = "",
+      States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
+    > =
+      | ( StateNodePathString extends "" ? never :
+          StateNodePathString extends "." ? never :
+          StateNodePathString
+        )
+      | { [S in keyof States]:
+            WithRoot<
+              O.Assert<States[S]>,
+              TargetPathString.Append<StateNodePathString, S.Assert<S>>
+            >
+        }[keyof States]
+
+    Test.checks([
+      Test.check<
+        TargetPathString.WithRoot<{ states: {
+          a: { states: { a1: {}, a2: {} } },
+          b: { states: { b1: {}, b2: {} } }
+        } }>
+        , | "a"
+          | "a.a1"
+          | "a.a2"
+          | "b"
+          | "b.b1"
+          | "b.b2"
+        , Test.Pass>()
+    ])
+
+    export type OfIdWithRoot<
+      StateNode extends A.Object,
+      Id = O.Prop<StateNode, "id">,
+      States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>,
+      IdPathString extends A.String = `#${S.Assert<Id>}`
+    > = 
+      | ( A.IsUndefined<Id> extends B.True ? never :
+            | IdPathString
+            | TargetPathString.WithRoot<StateNode, IdPathString>
+        )
+      | { [S in keyof States]:
+            TargetPathString.OfIdWithRoot<O.Assert<States[S]>>
+        }[keyof States]
+
+      Test.checks([
+        Test.check<
+          TargetPathString.OfIdWithRoot<{ id: "root", states: {
+            a: { states: { a1: {}, a2: {} } },
+            b: { id: "b", states: { b1: {}, b2: {} } }
+          } }>
+          , | "#root"
+            | "#root.a"
+            | "#root.a.a1"
+            | "#root.a.a2"
+            | "#root.b"
+            | "#root.b.b1"
+            | "#root.b.b2"
+            | "#b"
+            | "#b.b1"
+            | "#b.b2"
+          , Test.Pass>()
+      ])
+
+    export type Append<A extends A.String, B extends A.String> =
+      A extends "" ? B :
+      A extends "." ? `.${B}` :
+      `${A}.${B}`
+  }
+
+  
+  export namespace IdMap {
+    export type WithRoot<StateNode extends A.Object> = 
+        O.Mergify<O.Assert<U.IntersectOf<_WithRoot<StateNode>>>>
+          
+    type _WithRoot<
+      StateNode extends A.Object,
+      PathString extends string = "",
+      Id = O.Prop<StateNode, "id">, 
+      States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
+    > = 
+      | ( A.IsUndefined<Id> extends B.True ? {} : { [_ in PathString]: Id } )
+      | { [S in keyof States]:
+            _WithRoot<O.Assert<States[S]>, TargetPathString.Append<PathString, S.Assert<S>>>
+        }[keyof States]
+
+    Test.checks([
+      Test.check<
+        IdMap.WithRoot<{ id: "root", states: {
+          a: { states: { a1: {}, a2: {} } },
+          b: { states: { b1: {}, b2: { id: "bar" } } }
+        } }>
+        , { "": "root", "b.b2": "bar" }
+        , Test.Pass
+      >()
+    ])
+  }
+
+  export namespace Id {
+    export type Of<
+      Definition extends A.Object,
+      Path extends A.ReadonlyTuple<PropertyKey>,
+      Cache extends A.Object,
+      Self = O.Path<Definition, Path>,
+      IdMap extends A.Object = O.Assert<Cache.Get<Cache, "IdMap">>
+    > =
+      Self extends string
+        ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
+          ? Self
+          : `Ids should be unique, '${Self}' is already used`
+        : "Ids should be strings"
+  }
+
+  export namespace StaticTransitionMap {
+    export type Of<
+      Definition extends A.Object,
+      Path extends A.ReadonlyTuple<PropertyKey>,
+      Cache extends A.Object,
+      StateNode = O.Path<Definition, Path>,
+      StateNodePathString extends A.String = NodePathString.FromPath<Path>,
+      On =
+        & O.Prop<StateNode, "on", {}> 
+        & ( O.Prop<StateNode, "always"> extends undefined
+              ? {}
+              : { [Always.$$Event]: O.Prop<StateNode, "always"> }
+          ),
+      States = O.Prop<StateNode, "states", {}>
+    > =
+      O.Mergify<
+        & { [_ in StateNodePathString]:
+            { [EventIdentifier in keyof On]:
+              On[EventIdentifier] extends infer Target
+                ? Target extends undefined
+                    ? undefined :
+                  Target extends (A.Tuple<A.Object> | A.Object)
+                    ? (Target extends A.Tuple<A.Object> ? Target : [Target]) extends infer Target
+                      ? | { [I in keyof Target]:
+                              O.Prop<Target[I], "target"> extends infer TargetI
+                                ? TargetI extends A.Tuple<A.String>
+                                    ? { [J in keyof TargetI]:
+                                          TargetPathString.ResolveWithStateNode<
+                                            Definition, Cache, StateNodePathString, S.Assert<TargetI[J]>
+                                          >
+                                      }
+                                    : TargetPathString.ResolveWithStateNode<Definition, Cache, StateNodePathString, S.Assert<TargetI>>
+                                : never
+                          }[A.Cast<number, keyof Target>]
+                        | (Target extends A.Tuple<{ cond: any }> ? StateNodePathString : never)
+                      : never :
+                  Target extends A.Tuple<A.String>
+                    ? { [K in keyof Target]:
+                          TargetPathString.ResolveWithStateNode<Definition, Cache, StateNodePathString, S.Assert<Target[K]>>
+                      } :
+                  TargetPathString.ResolveWithStateNode<Definition, Cache, StateNodePathString, S.Assert<Target>>
+                : never
+            }
+          }
+        & U.IntersectOf<{ [ChildStateIdentifier in keyof States]: 
+            StaticTransitionMap.Of<Definition, L.Concat<Path, ["states", ChildStateIdentifier]>, Cache>
+          }[keyof States]>
+      >
+
+    type TestStaticTransitionMapOf<D extends A.Object> = StaticTransitionMap.Of<D, [], Cache.Of<D>>;
+
+    Test.checks([
+      Test.check<
+        TestStaticTransitionMapOf<{
+          initial: "enabled",
+          states: {
+            enabled: { on: { DISABLE: "#foo" } },
+            disabled: { id: "foo", on: { ENABLE: "enabled" } }
+          }
+        }>,
+        { "": {}
+        , "enabled": { DISABLE: "disabled" }
+        , "disabled": { ENABLE: "enabled" }
+        },
+        Test.Pass
+      >(),
+      Test.check<
+        TestStaticTransitionMapOf<{
+          initial: "a",
+          states: {
+            a: { on: { A: "#foo" } },
+            b: {
+              id: "foo",
+              on: { B: [{ target: ["c.c1", "#bar"] }, { target: ".p" }], C: ".p" },
+              initial: "p",
+              states: {
+                p: { on: { XYZ: { target: "#foo.q", cond: any } } },
+                q: {}
+              },
+              always: [{ target: "#bar", cond: any }, { target: "a" }]
+            },
+            c: {
+              type: "parallel",
+              states: {
+                c1: { on: { X: undefined } },
+                c2: { id: "bar" }
+              },
+              always: { target: ["#foo"] }
+            }
+          },
+          always: [{ target: "#foo.q", cond: any }, { target: "#foo", cond: any }]
+        }>,
+        { "": { [Always.$$Event]: "b.q" | "b" | "" }
+        , "a": { A: "b" }
+        , "b": { B:  ["c.c1", "c.c2"] | "b.p", C: "b.p", [Always.$$Event]: "c.c2" | "a" }
+        , "b.p": { XYZ: "b.q" | "b.p" }
+        , "b.q": {}
+        , "c": { [Always.$$Event]: ["b"] }
+        , "c.c1": { X: undefined }
+        , "c.c2": {}
+        },
+        Test.Pass
+      >(),
+
+      Test.check<TestStaticTransitionMapOf<{
+        initial: "a",
+        states: {
+          a: { on: { X: { target: "#foo" } } },
+          b: {
+            id: "foo",
+            initial: "x",
+            states: {
+              x: { always: { target: "a" } }
+            }
+          }
+        }
+      }>,
+      { "": {}
+      , "a": { X: "b" }
+      , "b": {}
+      , "b.x": { [Always.$$Event]: "a" }
+      },
+      Test.Pass>()
+    ])
+  }
+
+
+  namespace MachineSnapshot {
+
+    export type Transition<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      InitialStateNodePathString extends A.String,
+      Event extends A.String | Always.$$Event | null,
+      VisitedStateNodePathStrings extends A.Tuple<A.String> = [],
+      InitialStateNode extends A.Object = O.Assert<O.Path<Definition, NodePathString.ToPath<InitialStateNodePathString>>>,
+      Initial extends A.String | undefined = A.Cast<O.Prop<InitialStateNode, "initial">, A.String | undefined>,
+      StateNodeType = O.Prop<InitialStateNode, "type", "compound">,
+      ChildStates = O.Prop<InitialStateNode, "states">,
+      TransitionMap = Cache.Get<Cache, "StaticTransitionMap">,
+      EventMap = O.Prop<TransitionMap, InitialStateNodePathString>,
+      IsVisited = L.Includes<VisitedStateNodePathStrings, InitialStateNodePathString>,
+      NextVisitedStateNodePathString extends A.Tuple<A.String> =
+        L.Append<VisitedStateNodePathStrings, InitialStateNodePathString>
+    > =
+      IsVisited extends B.True ? 
+        StateNodeType extends "parallel"
+          ? U.ListOf<keyof ChildStates> extends infer NextStates
+            ? { [K in keyof NextStates]:
+                  Transition<
+                    Definition,
+                    Cache, 
+                    InitialStateNodePathString extends ""
+                      ? S.Assert<NextStates[K]>
+                      : `${InitialStateNodePathString}.${S.Assert<NextStates[K]>}`,
+                    null,
+                    NextVisitedStateNodePathString
+                  >
+              }
+            : never
+          : InitialStateNodePathString :
+      Event extends null
+        ? ( Always.$$Event extends keyof EventMap
+              ? Transition<
+                  Definition,
+                  Cache, 
+                  InitialStateNodePathString,
+                  Always.$$Event,
+                  VisitedStateNodePathStrings
+                > :
+            Initial extends undefined
+              ? StateNodeType extends "parallel"
+                  ? U.ListOf<keyof ChildStates> extends infer NextStates
+                    ? { [K in keyof NextStates]:
+                          Transition<
+                            Definition,
+                            Cache, 
+                            InitialStateNodePathString extends ""
+                              ? S.Assert<NextStates[K]>
+                              : `${InitialStateNodePathString}.${S.Assert<NextStates[K]>}`,
+                            null,
+                            NextVisitedStateNodePathString
+                          >
+                      }
+                    : never
+                  : InitialStateNodePathString :
+            Transition<
+              Definition,
+              Cache, 
+              InitialStateNodePathString extends ""
+                ? S.Assert<Initial>
+                : `${InitialStateNodePathString}.${S.Assert<Initial>}`,
+              null,
+              NextVisitedStateNodePathString
+            >
+          ) 
+        : Event extends keyof EventMap
+            ? EventMap[Event] extends undefined ? never :
+              EventMap[Event] extends infer NextState
+                ? NextState extends any 
+                  ? (NextState extends A.Tuple<A.String> ? NextState : [NextState]) extends infer NextStates
+                    ? { [K in keyof NextStates]:
+                        Transition<Definition, Cache, S.Assert<NextStates[K]>, null, NextVisitedStateNodePathString>
+                      }[A.Cast<number, keyof NextStates>]
+                    : never
+                  : never
+                : never
+            : never;
+
+    export type TestTransition<
+      D extends A.Object,
+      I extends A.String,
+      E extends A.String | Always.$$Event | null
+    > = Transition<D, Cache.Of<D>, I, E>
+
+    Test.checks([
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: { a: {} }
+        }, "", null>,
+        "a",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a", states: { a: {
+            initial: "b", states: { b: {
+                initial: "c", states: { c: {} }
+            } }
+          } }
+        }, "", null>,
+        "a.b.c",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: { a: {}, b: {} },
+          always: [{ target: "b" }]
+        }, "", null>,
+        "b",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          type: "parallel",
+          states: { a: {}, b: {} }
+        }, "", null>,
+        ["a", "b"],
+        Test.Pass
+      >(),
+
+      
+      Test.check<
+        TestTransition<{
+          type: "parallel",
+          states: { a: {}, b: {}, c: {} },
+          always: { target: "c", cond: any }
+        }, "", null>,
+        ["a", "b", "c"] | "c",
+        Test.Pass
+      >(),
+      
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: { a: {}, b: { always: [{ target: "#foo" }] }, c: { id: "foo" } },
+          on: { A: "b" }
+        }, "", "A">,
+        "c",
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: {
+            a: { always: { target: "b" } },
+            b: { always: { target: "a" } }
+          }
+        }, "", null>,
+        "a",
+        Test.Pass
+      >(),
+
+
+      Test.check<
+        TestTransition<{
+          initial: "a",
+          states: {
+            a: { always: { target: "b" } },
+            b: { always: { target: "a", cond: any } }
+          }
+        }, "", null>,
+        "a" | "b",
+        Test.Pass
+      >()
+
+    ])
+
+    
+
+
+    export type IsRedundantTransition<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      InitialStateNodePathString extends A.String,
+      Event extends A.String | Always.$$Event | null
+    > =
+      A.String extends InitialStateNodePathString ? B.Boolean :
+      A.Equals<
+        InitialStateNodePathString,
+        Transition<Definition, Cache, InitialStateNodePathString, Event>
+      >
+
+    export type TestIsRedundantTransition<
+      Definition extends A.Object, 
+      InitialStateNodePathString extends A.String,
+      Event extends A.String | Always.$$Event | null
+    > = IsRedundantTransition<Definition, Cache.Of<Definition>, InitialStateNodePathString, Event>
+
+    Test.checks([
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { always: { target: "b" } },
+            b: { always: { target: "a" } }
+          }
+        }, "a", Always.$$Event>,
+        B.True,
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { on: { X: { target: "#foo" } } },
+            b: { id: "foo", always: { target: "a" } }
+          }
+        }, "a", "X">,
+        B.True,
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { on: { X: { target: "#foo" } } },
+            b: { id: "foo", always: { target: "a", cond: any } }
+          }
+        }, "a", "X">,
+        B.False,
+        Test.Pass
+      >(),
+
+      Test.check<
+        TestIsRedundantTransition<{
+          initial: "a",
+          states: {
+            a: { on: { X: { target: "#foo" } } },
+            b: {
+              id: "foo",
+              initial: "x",
+              states: {
+                x: { always: { target: "a" } }
+              }
+            }
+          }
+        }, "a", "X">,
+        B.True,
+        Test.Pass
+      >()
+      
+    ])
+  }
+
+  export namespace TransitionMap {
+    export type Of<
+      Definition extends A.Object,
+      Cache extends A.Object,
+      StaticMap = Cache.Get<Cache, "StaticTransitionMap">
+    > =
+      { [State in keyof StaticMap]:
+          { [Event in keyof StaticMap[State]]:
+              MachineSnapshot.Transition<
+                Definition, Cache, S.Assert<State>, A.Cast<Event, A.String | Always.$$Event>
+              >
+          }
+      }
+  }
+
+
+  export namespace Entry {
+    export type Of<
+      Definition extends A.Object,
+      Path extends A.ReadonlyTuple<PropertyKey>,
+      Cache extends A.Object,
+      Self = O.Assert<O.Path<Definition, Path>>,
+      StateNodePathString extends A.String = NodePathString.FromPath<L.Pop<Path>>,
+      TransitionMap = Cache.Get<Cache, "TransitionMap">,
+      EventIdentifier = U.Exclude<{ [State in keyof TransitionMap]:
+          { [Event in keyof TransitionMap[State]]:
+              StateNodePathString extends TransitionMap[State][Event]
+                ? Event
+                : never
+          }[keyof TransitionMap[State]]
+      }[keyof TransitionMap], Always.$$Event>
+    > =
+      ( context: "TODO"
+      , event: EventIdentifier extends any ? { type: EventIdentifier } : never
+      ) => void
+  }
+}
