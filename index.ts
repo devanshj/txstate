@@ -4,11 +4,8 @@ export declare const Machine: {
   <D extends MachineDefinition.Of<D>>(definition: A.InferNarrowest<D>): D
 }
 
-export interface TXStateFlags {}
-
 namespace MachineDefinition {
   export type Of<Definition extends A.Object> =
-    O.Has<TXStateFlags, "noChecks"> extends B.True ? object :
     & StateNode.Of<Definition, []>
     & { context?: "TODO" };
 
