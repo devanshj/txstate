@@ -15,7 +15,6 @@ namespace MachineDefinition {
         | "ReferencePathString"
         | "IdMap"
         | "StaticTransitionMap"
-        | "TransitionMap"
     > =
       O.Prop<Precomputed, Key>
 
@@ -26,10 +25,7 @@ namespace MachineDefinition {
       } extends infer Precomputed1
         ? ( & Precomputed1 
             & { "StaticTransitionMap": StaticTransitionMap.Of<Definition, [], O.Assert<Precomputed1>> }
-          ) extends infer Precomputed2
-              ? & Precomputed2
-                & { "TransitionMap": TransitionMap.Of<Definition, O.Assert<Precomputed2>> }
-              : never
+          )
         : never
   }
 
