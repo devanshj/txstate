@@ -1,4 +1,4 @@
-import { Machine } from ".";
+import { Machine } from "..";
 
 Machine({
   id: "settings",

@@ -1,5 +1,5 @@
-import { O, A, U, L, B, Test, S } from "./extras";
-import { ReferencePathString } from "./universal";
+import { O, A, U, L, B, Test, S } from "../extras";
+import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
 namespace MachineDefinition {

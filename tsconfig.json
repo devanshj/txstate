@@ -7,5 +7,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
   },
-  "exclude": ["./isolated-tests/*"]
+  "exclude": ["isolated-tsc/*"]
 }
