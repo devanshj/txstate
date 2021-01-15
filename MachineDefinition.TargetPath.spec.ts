@@ -113,34 +113,3 @@ Machine({
   // @ts-expect-error
   on: { X: "states" }
 })
-
-Machine({
-  initial: "a",
-  states: {
-    a: { on: {
-      // @ts-expect-error
-      X: { target: "#foo" }
-    }},
-    b: {
-      id: "foo",
-      initial: "x",
-      states: {
-        x: { always: { target: "a" } }
-      }
-    }
-  }
-})
-
-Machine({
-  initial: "a",
-  states: {
-    a: {
-      // @ts-expect-error
-      always: { target: "b" }
-    },
-    b: {
-      // @ts-expect-error
-      always: { target: "a" }
-    }
-  }
-})
