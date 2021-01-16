@@ -2,9 +2,7 @@
   "name": "txstate",
   "version": "0.0.0",
   "private": true,
-  "dependencies": {
-    "ts-toolbelt": "^8.0.3"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
     "@types/glob": "^7.1.3",

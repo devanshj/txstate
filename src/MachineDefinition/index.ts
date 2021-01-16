@@ -1,9 +1,9 @@
-import { O, A, U, L, B, Test, S } from "../extras";
+import { O, A, U, L, B, Type, S } from "../extras";
 import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
 namespace MachineDefinition {
-  export type Of<Definition extends A.Object> =
+  export type Of<Definition> =
     & StateNode.Of<Definition, [], Precomputed.Of<Definition>>
     & { context?: "TODO" };
 
@@ -14,34 +14,26 @@ namespace MachineDefinition {
         | "ReferencePathString.OfId"
         | "ReferencePathString"
         | "IdMap"
-        | "StaticTransitionMap"
     > =
-      O.Prop<Precomputed, Key>
+      O.Get<Precomputed, Key>
 
-    export type Of<Definition extends A.Object> =
+    export type Of<Definition> =
       { "ReferencePathString.OfId": ReferencePathString.Unresolved.OfIdWithRoot<Definition>
       , "ReferencePathString": ReferencePathString.WithRoot<Definition>
       , "IdMap": IdMap.WithRoot<Definition>
-      } extends infer Precomputed1
-        ? ( & Precomputed1 
-            & { "StaticTransitionMap": StaticTransitionMap.Of<Definition, [], O.Assert<Precomputed1>> }
-          )
-        : never
+      }
   }
 
   export namespace StateNode {
     export type Of<
-      Definition extends A.Object,
-      Path extends A.ReadonlyTuple<PropertyKey>,
-      Precomputed extends A.Object,
+      Definition,
+      Path,
+      Precomputed,
 
-      Self extends A.Object = O.Assert<O.Path<Definition, Path>>,
-      Initial = O.Prop<Self, "initial">,
-      States = O.Prop<Self, "states">,
-      Type = O.Prop<Self, "type", "compound">,
-      Id = O.Prop<Self, "id">,
-      On = O.Prop<Self, "on">,
-      Always = O.Prop<Self, "always">
+      Self = O.Get<Definition, Path>,
+      States = O.Get<Self, "states">,
+      Type = O.Get<Self, "type", "compound">,
+      On = O.Get<Self, "on">
     > =
       & { type?:
             | "compound"
@@ -50,55 +42,55 @@ namespace MachineDefinition {
             | "history"
             | "atomic"
         , states?:
-          A.Equals<Type, "atomic"> extends B.True
+          Type extends "atomic"
             ? "Error: atomic state node can't have states property"
             : { [StateIdentifier in keyof States]:
-                  StateIdentifier extends string
+                  StateIdentifier extends A.String
                     ? S.DoesContain<StateIdentifier, "."> extends B.True
                         ? `Error: identifiers can't have '.' as it's use as a path delimiter`
                         : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Precomputed>
                     : `Error: only string identifiers allowed`
               }
         }
-      & ( A.Equals<Type, "atomic"> extends B.True ?
+      & ( Type extends "atomic" ?
             { initial?: "Error: atomic state node can't have initial property" } :
-          A.Equals<States, undefined> extends B.True ?
+          [keyof States] extends [never] ?
             { initial?: "Error: no states defined" } :
-          A.Equals<Type, "parallel"> extends B.True ?
+          Type extends "parallel" ?
             { initial?: undefined } :
           { initial: keyof States }
         )
-      & { id?: Id.Of<Definition, L.Append<Path, "id">, Precomputed>
+      & { id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , on?: 
             & { [EventIdentifier in keyof On]:
-                  EventIdentifier extends string
+                  EventIdentifier extends A.String
                     ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed>
                     : "Error: only string identifier allowed"
               }
-        , always?: Always.Of<Definition, L.Append<Path, "always">, Precomputed>
+        , always?: Always.Of<Definition, L.Pushed<Path, "always">, Precomputed>
         , __debugger?:
             { __Precomputed?: Partial<Precomputed> }
         }
   }
 
   export namespace Transition {
- 
-    export type Of<
-        Definition extends A.Object,
-        Path extends A.ReadonlyTuple<PropertyKey>,
-        Precomputed extends A.Object,
 
-        Self = O.Assert<O.Path<Definition, Path>>,
-        StateNodePath extends A.ReadonlyTuple<PropertyKey> = A.Cast<L.Pop<L.Pop<Path>>, A.ReadonlyTuple<PropertyKey>>,
-        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
+    export type Of<
+        Definition,
+        Path,
+        Precomputed,
+
+        Self = O.Get<Definition, Path>,
+        StateNodePath = L.Popped<L.Popped<Path>>,
+        StateNode = O.Get<Definition, StateNodePath>,
         TargetPathString =
           | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
           | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
           | ( Precomputed.Get<Precomputed, "ReferencePathString"> extends infer X ? S.Assert<X> : never )
-          | ( StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>> )
+          | ( O.Get<StateNodePath, "length"> extends 0 ? never : keyof O.Get<Definition, L.Popped<StateNodePath>> )
       > =
         ( Self extends { target: any } ? never :
-            ( Self extends object[] ? never :
+            ( Self extends A.Object[] ? never :
               | undefined
               | TargetPathString
               | ( Self extends A.ReadonlyTuple<TargetPathString>
@@ -106,13 +98,13 @@ namespace MachineDefinition {
                     : A.ReadonlyTuple<TargetPathString>
                 )
             )
-            | ( Self extends object[]
+            | ( Self extends A.Object[]
                   ? L.ReadonlyOf<L.Assert<{
                       [K in keyof Self]:
                         { target?:
                             | undefined
                             | TargetPathString
-                            | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                            | ( O.Get<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
                                   ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
                                   : A.ReadonlyTuple<TargetPathString>
                               )
@@ -132,29 +124,48 @@ namespace MachineDefinition {
             | undefined
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Append<Path, "target">, Precomputed, StateNodePath>
+                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Pushed<Path, "target">, Precomputed, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
           , cond?: any
           };
+
+
+    export type Desugar<T> =
+      ( T extends A.Object[] ? T :
+        T extends A.Object ? [T] :
+        T extends A.String | A.StringTuple ? [{ target: T }] :
+        never[]
+      ) extends infer Ts
+        ? { [K in keyof Ts]:
+              { target:
+                  O.Get<Ts[K], "target"> extends infer T
+                    ? T extends A.StringTuple ? T : [T]
+                    : never
+              , internal: O.Get<Ts[K], "internal", false>
+              , cond: O.Get<Ts[K], "cond", true>
+              , actions: O.Get<Ts[K], "actions", []>
+              }
+          }
+        : never
   }
 
   export namespace Always {
  
     export type Of<
-        Definition extends A.Object,
-        Path extends A.ReadonlyTuple<PropertyKey>,
-        Precomputed extends A.Object,
+        Definition,
+        Path,
+        Precomputed,
         
-        Self = O.Assert<O.Path<Definition, Path>>,
-        StateNodePath extends A.ReadonlyTuple<PropertyKey> = L.Pop<Path>, // TODO: only diff, try to reuse Transition.Of
-        StateNode extends A.Object = O.Assert<O.Path<Definition, StateNodePath>>,
+        Self = O.Get<Definition, Path>,
+        StateNodePath = L.Popped<Path>, // TODO: only diff, try to reuse Transition.Of
+        StateNode = O.Get<Definition, StateNodePath>,
         ReferencePathString =
           | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
           | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
           | ( Precomputed.Get<Precomputed, "ReferencePathString"> extends infer X ? S.Assert<X> : never )
-          | ( StateNodePath["length"] extends 0 ? never : keyof O.Path<Definition, L.Pop<StateNodePath>> )
+          | ( O.Get<StateNodePath, "length"> extends 0 ? never : keyof O.Get<Definition, L.Popped<StateNodePath>> )
       > =
         ( Self extends { target: any } ? never :
           | ( Self extends A.ReadonlyTuple<A.Object>
@@ -163,7 +174,7 @@ namespace MachineDefinition {
                       { target?:
                           | undefined
                           | ReferencePathString
-                          | ( O.Prop<Self[K], "target"> extends A.ReadonlyTuple<ReferencePathString>
+                          | ( O.Get<Self[K], "target"> extends A.ReadonlyTuple<ReferencePathString>
                                 ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
                                 : A.ReadonlyTuple<ReferencePathString>
                             )
@@ -183,7 +194,7 @@ namespace MachineDefinition {
             | undefined
             | ReferencePathString
             | ( Self extends { target: A.ReadonlyTuple<ReferencePathString> }
-                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Append<Path, "target">, Precomputed, StateNodePath>
+                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Pushed<Path, "target">, Precomputed, StateNodePath>
                   : A.ReadonlyTuple<ReferencePathString>
               )
           , internal?: boolean // TODO: enforce false for external
@@ -209,239 +220,108 @@ namespace MachineDefinition {
       */
   
       export type OfWithStateNodePath<
-        Definition extends A.Object,
-        Path extends A.ReadonlyTuple<PropertyKey>,
-        Precomputed extends A.Object,
-        StateNodePath extends A.ReadonlyTuple<PropertyKey>,
+        Definition,
+        Path,
+        Precomputed,
+        StateNodePath,
 
-        Self extends A.ReadonlyTuple<string> = A.Cast<O.Path<Definition, Path>, A.ReadonlyTuple<string>>,
-        StateReferencePathString extends A.String = ReferencePathString.FromDefinitionPath<StateNodePath>,
-        SelfResolved extends A.ReadonlyTuple<A.String> =
-          A.Cast<{ [I in keyof Self]:
-            ReferencePathString.Unresolved.ResolveWithStateNode<
-              Definition,
-              Precomputed,
-              StateReferencePathString,
-              S.Assert<Self[I]>
-            >
-          }, A.ReadonlyTuple<string>>,
-        RegionRootOf extends A.ReadonlyTuple<A.Tuple<A.String>> =
-          A.Cast<{ [I in keyof SelfResolved]:
-            ReferencePathString.RegionRoot<
-              S.Assert<SelfResolved[I]>,
-              Definition
-            >
-          }, A.ReadonlyTuple<A.Tuple<A.String>>>
+        Self = O.Get<Definition, Path>,
+        StateReferencePathString = ReferencePathString.FromDefinitionPath<StateNodePath>,
+        SelfResolved =
+          { [I in keyof Self]:
+              ReferencePathString.Unresolved.ResolveWithStateNode<
+                Definition,
+                Precomputed,
+                StateReferencePathString,
+                Self[I]
+              >
+          },
+        RegionRootOf =
+          { [I in keyof SelfResolved]:
+              ReferencePathString.RegionRoot<SelfResolved[I], Definition>
+          }
       > =
-        L.ReadonlyOf<L.Assert<{ [I in keyof Self]:
+        L.ReadonlyOf<{ [I in keyof Self]:
           [ | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  ReferencePathString.IsDescendant<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
+                  ReferencePathString.IsDescendant<O.Get<SelfResolved, J>, O.Get<SelfResolved, I>> extends B.True
                     ? Self[J]
                     : never
-              }[number] extends infer Ancestors
-                ? A.IsNever<Ancestors> extends B.False
-                    ? `Error: ${S.Assert<Self[I]>} is descendant of ${S.Commas<S.Assert<Ancestors>>}`
-                    : never
+              }[number & keyof Self] extends infer Ancestors
+                ? [Ancestors] extends [never]
+                    ? never
+                    : `Error: ${S.Assert<Self[I]>} is descendant of ${S.Commas<S.Assert<Ancestors>>}`
                 : never)
             | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  ReferencePathString.IsAncestor<S.Assert<O.Prop<SelfResolved, J>>, S.Assert<O.Prop<SelfResolved, I>>> extends B.True
+                  ReferencePathString.IsAncestor<S.Assert<O.Get<SelfResolved, J>>, S.Assert<O.Get<SelfResolved, I>>> extends B.True
                     ? Self[J]
                     : never
-              }[number] extends infer Descendants
-                ? A.IsNever<Descendants> extends B.False
-                    ? `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}`
-                    : never
-                : never)
+              }[number & keyof Self] extends infer Descendants
+                ? [Descendants] extends [never]
+                    ? never
+                    : `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}`                : never)
           , { [J in keyof Self]:
                 J extends I ? never :
-                O.Prop<RegionRootOf, I> extends O.Prop<RegionRootOf, J> ? Self[J] :
+                O.Get<RegionRootOf, I> extends O.Get<RegionRootOf, J> ? Self[J] :
                 never
-            }[number] extends infer NodesWithCommonRegionRoot
-              ? A.IsNever<NodesWithCommonRegionRoot> extends B.False
-                  ? `Error: ${S.Assert<Self[I]>} has region root same as that of ${
-                      S.Commas<S.Assert<NodesWithCommonRegionRoot>>
+            }[number & keyof Self] extends infer NodesWithCommonRegionRoot
+              ? [NodesWithCommonRegionRoot] extends [never]
+                  ? never
+                  : `Error: ${S.Assert<Self[I]>} has region root same as that of ${
+                      S.Commas<NodesWithCommonRegionRoot>
                     }`
-                  : never
               : never
           ] extends [infer AncestryError, infer RegionRootError]
-            ? A.IsNever<AncestryError> extends B.False ? AncestryError :
-              A.IsNever<RegionRootError> extends B.False ? RegionRootError :
-              Self[I]
+            ? [AncestryError] extends [never]
+                ? [RegionRootError] extends [never]
+                  ? Self[I]
+                  : RegionRootError
+                : AncestryError
             : never
-        }>>
+        }>
     }
 
   export namespace IdMap {
-    export type WithRoot<StateNode extends A.Object> = 
-        O.Mergify<O.Assert<U.IntersectOf<_WithRoot<StateNode>>>>
+    export type WithRoot<StateNode> = 
+        O.Mergify<O.Assert<U.ToIntersection<_WithRoot<StateNode>>>>
           
     type _WithRoot<
-      StateNode extends A.Object,
+      StateNode,
 
-      PathString extends string = "",
-      Id = O.Prop<StateNode, "id">, 
-      States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
+      PathString = "",
+      Id = O.Get<StateNode, "id">, 
+      States = O.Get<StateNode, "states", {}>
     > = 
-      | ( A.IsUndefined<Id> extends B.True ? {} : { [_ in PathString]: Id } )
+      | ( Id extends undefined ? {} : { [_ in S.Assert<PathString>]: Id } )
       | { [S in keyof States]:
             _WithRoot<O.Assert<States[S]>, ReferencePathString.Append<PathString, S.Assert<S>>>
         }[keyof States]
 
-    Test.checks([
-      Test.check<
+    Type.tests([
+      Type.areEqual<
         IdMap.WithRoot<{ id: "root", states: {
           a: { states: { a1: {}, a2: {} } },
           b: { states: { b1: {}, b2: { id: "bar" } } }
         } }>
         , { "": "root", "b.b2": "bar" }
-        , Test.Pass
       >()
     ])
   }
 
   export namespace Id {
     export type Of<
-      Definition extends A.Object,
-      Path extends A.ReadonlyTuple<PropertyKey>,
-      Precomputed extends A.Object,
+      Definition,
+      Path,
+      Precomputed,
 
-      Self = O.Path<Definition, Path>,
-      IdMap extends A.Object = O.Assert<Precomputed.Get<Precomputed, "IdMap">>
+      Self = O.Get<Definition, Path>,
+      IdMap = Precomputed.Get<Precomputed, "IdMap">
     > =
-      Self extends string
+      Self extends A.String
         ? U.IsUnit<O.KeyWithValue<IdMap, Self>> extends B.True
           ? Self
           : `Ids should be unique, '${Self}' is already used`
         : "Ids should be strings"
   }
-
-  export namespace StaticTransitionMap {
-    export type Of<
-      Definition extends A.Object,
-      Path extends A.ReadonlyTuple<PropertyKey>,
-      Precomputed extends A.Object,
-
-      StateNode = O.Path<Definition, Path>,
-      StateReferencePathString extends A.String = ReferencePathString.FromDefinitionPath<Path>,
-      On =
-        & O.Prop<StateNode, "on", {}> 
-        & ( O.Prop<StateNode, "always"> extends undefined
-              ? {}
-              : { [Always.$$Event]: O.Prop<StateNode, "always"> }
-          ),
-      States = O.Prop<StateNode, "states", {}>
-    > =
-      O.Mergify<
-        & { [_ in StateReferencePathString]:
-            { [EventIdentifier in keyof On]:
-              On[EventIdentifier] extends infer Target
-                ? Target extends undefined
-                    ? undefined :
-                  Target extends (A.Tuple<A.Object> | A.Object)
-                    ? (Target extends A.Tuple<A.Object> ? Target : [Target]) extends infer Target
-                      ? | { [I in keyof Target]:
-                              O.Prop<Target[I], "target"> extends infer TargetI
-                                ? TargetI extends A.Tuple<A.String>
-                                    ? { [J in keyof TargetI]:
-                                          ReferencePathString.Unresolved.ResolveWithStateNode<
-                                            Definition, Precomputed, StateReferencePathString, S.Assert<TargetI[J]>
-                                          >
-                                      }
-                                    : ReferencePathString.Unresolved.ResolveWithStateNode<Definition, Precomputed, StateReferencePathString, S.Assert<TargetI>>
-                                : never
-                          }[A.Cast<number, keyof Target>]
-                        | (Target extends A.Tuple<{ cond: any }> ? StateReferencePathString : never)
-                      : never :
-                  Target extends A.Tuple<A.String>
-                    ? { [K in keyof Target]:
-                          ReferencePathString.Unresolved.ResolveWithStateNode<Definition, Precomputed, StateReferencePathString, S.Assert<Target[K]>>
-                      } :
-                  ReferencePathString.Unresolved.ResolveWithStateNode<Definition, Precomputed, StateReferencePathString, S.Assert<Target>>
-                : never
-            }
-          }
-        & U.IntersectOf<{ [ChildStateIdentifier in keyof States]: 
-            StaticTransitionMap.Of<Definition, L.Concat<Path, ["states", ChildStateIdentifier]>, Precomputed>
-          }[keyof States]>
-      >
-
-    type TestStaticTransitionMapOf<D extends A.Object> = StaticTransitionMap.Of<D, [], Precomputed.Of<D>>;
-
-    Test.checks([
-      Test.check<
-        TestStaticTransitionMapOf<{
-          initial: "enabled",
-          states: {
-            enabled: { on: { DISABLE: "#foo" } },
-            disabled: { id: "foo", on: { ENABLE: "enabled" } }
-          }
-        }>,
-        { "": {}
-        , "enabled": { DISABLE: "disabled" }
-        , "disabled": { ENABLE: "enabled" }
-        },
-        Test.Pass
-      >(),
-      Test.check<
-        TestStaticTransitionMapOf<{
-          initial: "a",
-          states: {
-            a: { on: { A: "#foo" } },
-            b: {
-              id: "foo",
-              on: { B: [{ target: ["c.c1", "#bar"] }, { target: ".p" }], C: ".p" },
-              initial: "p",
-              states: {
-                p: { on: { XYZ: { target: "#foo.q", cond: any } } },
-                q: {}
-              },
-              always: [{ target: "#bar", cond: any }, { target: "a" }]
-            },
-            c: {
-              type: "parallel",
-              states: {
-                c1: { on: { X: undefined } },
-                c2: { id: "bar" }
-              },
-              always: { target: ["#foo"] }
-            }
-          },
-          always: [{ target: "#foo.q", cond: any }, { target: "#foo", cond: any }]
-        }>,
-        { "": { [Always.$$Event]: "b.q" | "b" | "" }
-        , "a": { A: "b" }
-        , "b": { B:  ["c.c1", "c.c2"] | "b.p", C: "b.p", [Always.$$Event]: "c.c2" | "a" }
-        , "b.p": { XYZ: "b.q" | "b.p" }
-        , "b.q": {}
-        , "c": { [Always.$$Event]: ["b"] }
-        , "c.c1": { X: undefined }
-        , "c.c2": {}
-        },
-        Test.Pass
-      >(),
-
-      Test.check<TestStaticTransitionMapOf<{
-        initial: "a",
-        states: {
-          a: { on: { X: { target: "#foo" } } },
-          b: {
-            id: "foo",
-            initial: "x",
-            states: {
-              x: { always: { target: "a" } }
-            }
-          }
-        }
-      }>,
-      { "": {}
-      , "a": { X: "b" }
-      , "b": {}
-      , "b.x": { [Always.$$Event]: "a" }
-      },
-      Test.Pass>()
-    ])
-  }
-
 }

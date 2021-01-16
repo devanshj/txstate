@@ -1,55 +1,60 @@
-import { O, A, L, B, Test, S } from "./extras";
+import { O, A, L, B, Type, S } from "./extras";
 import MachineDefinition from "./MachineDefinition";
 
 export namespace ReferencePathString {
 
   export type RegionRoot<
-    ReferencePathString extends string,
-    RootNode extends A.Object,
+    ReferencePathString,
+    RootNode,
 
-    NodePath extends string[] = ReferencePathString.ToDefinitionPath<ReferencePathString>,
-    ParentNodePath extends string[] = L.Pop<L.Pop<NodePath>>,
-    ParentNode extends A.Object = O.Assert<O.Path<RootNode, ParentNodePath>>,
-    ParentReferencePathString extends string = ReferencePathString.FromDefinitionPath<ParentNodePath>
+    NodePath = ReferencePathString.ToDefinitionPath<ReferencePathString>,
+    ParentNodePath = L.Popped<L.Popped<NodePath>>,
+    ParentNode = O.Get<RootNode, ParentNodePath>,
+    ParentReferencePathString = ReferencePathString.FromDefinitionPath<ParentNodePath>
   > =
-    O.Prop<ParentNode, "type", "compound"> extends "parallel" ? NodePath :
-    ParentNodePath["length"] extends 0 ? [] :
+    O.Get<ParentNode, "type", "compound"> extends "parallel" ? NodePath :
+    O.Get<ParentNodePath, "length"> extends 0 ? [] :
     RegionRoot<ParentReferencePathString, RootNode>
 
-  export type IsDescendant<A extends string, B extends string> =
+  export type IsDescendant<A, B> =
     S.DoesStartWith<B, A>
 
-  export type IsAncestor<A extends string, B extends string> =
+  export type IsAncestor<A, B> =
     IsDescendant<B, A>
 
-  export type FromDefinitionPath<Path extends A.ReadonlyTuple<PropertyKey>> =
-    Path["length"] extends 0 ? "" :
+  export type FromDefinitionPath<Path> =
+    O.Get<Path, "length"> extends 0 ? "" :
     S.Replace<L.Join<Path, ".">, "states.", "">
 
-  Test.checks([
-    Test.check<FromDefinitionPath<[]>, "", Test.Pass>(),
-    Test.check<FromDefinitionPath<["states", "a"]>, "a", Test.Pass>(),
-    Test.check<FromDefinitionPath<["states", "a", "states", "b"]>, "a.b", Test.Pass>()
+  Type.tests([
+    Type.areEqual<FromDefinitionPath<[]>, "">(),
+    Type.areEqual<FromDefinitionPath<["states", "a"]>, "a">(),
+    Type.areEqual<FromDefinitionPath<["states", "a", "states", "b"]>, "a.b">()
   ])
 
-  export type ToDefinitionPath<PathString extends string> =
-    PathString extends "" ? [] :
-    ["states", ...S.Split<S.Replace<PathString, ".", ".states.">, ".">]
+  export type ToDefinitionPath<ReferencePathString> =
+    ReferencePathString extends "" ? [] :
+    ["states", ...S.Split<S.Replace<ReferencePathString, ".", ".states.">, ".">]
 
-  Test.checks([
-    Test.check<ToDefinitionPath<"">, [], Test.Pass>(),
-    Test.check<ToDefinitionPath<"a">, ["states", "a"], Test.Pass>(),
-    Test.check<ToDefinitionPath<"a.b">, ["states", "a", "states", "b"], Test.Pass>(),
+  Type.tests([
+    Type.areEqual<ToDefinitionPath<"">, []>(),
+    Type.areEqual<ToDefinitionPath<"a">, ["states", "a"]>(),
+    Type.areEqual<ToDefinitionPath<"a.b">, ["states", "a", "states", "b"]>(),
   ])
+
+  export namespace Tuple {
+    export type MapToDefinitionPath<T> =
+      { [K in keyof T]: ToDefinitionPath<S.Assert<T[K]>> }
+  }
 
   export namespace Unresolved {
     export type ResolveWithStateNode<
-      Definition extends A.Object,
-      Precomputed extends A.Object,
-      StateReferencePathString extends string,
-      TargetPathString extends string,
+      Definition,
+      Precomputed,
+      StateReferencePathString,
+      TargetPathString,
 
-      SiblingStateIdentifier = keyof O.Prop<O.Path<Definition, ReferencePathString.ToDefinitionPath<StateReferencePathString>>, "states">
+      SiblingStateIdentifier = keyof O.Get<O.Get<Definition, ReferencePathString.ToDefinitionPath<StateReferencePathString>>, "states">
     > =
       S.Assert<
         S.DoesStartWith<TargetPathString, "#"> extends B.True
@@ -59,7 +64,7 @@ export namespace ReferencePathString {
                       O.Assert<MachineDefinition.Precomputed.Get<Precomputed, "IdMap">>,
                       Id
                     > extends infer IdNodePath
-                      ? ReferencePathString.Append<S.Assert<IdNodePath>, RestPath>
+                      ? ReferencePathString.Append<IdNodePath, RestPath>
                       : never
                   : never
               : O.KeyWithValue<
@@ -69,14 +74,14 @@ export namespace ReferencePathString {
         S.DoesStartWith<TargetPathString, "."> extends B.True
           ? StateReferencePathString extends ""
               ? S.Shift<TargetPathString>
-              : `${StateReferencePathString}${TargetPathString}` :
+              : `${S.Assert<StateReferencePathString>}${S.Assert<TargetPathString>}` :
         B.Not<S.DoesContain<TargetPathString, ".">> extends B.True
           ? StateReferencePathString extends ""
               ? TargetPathString :
             TargetPathString extends SiblingStateIdentifier
               ? L.Join<
-                  L.Append<
-                    L.Pop<S.Split<StateReferencePathString, ".">>,
+                  L.Pushed<
+                    L.Popped<S.Split<StateReferencePathString, ".">>,
                     TargetPathString
                   >, "."
                 > :
@@ -85,22 +90,22 @@ export namespace ReferencePathString {
       >
 
       export type OfIdWithRoot<
-        StateNode extends A.Object,
+        StateNode,
 
-        Id = O.Prop<StateNode, "id">,
-        States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>,
-        IdPathString extends A.String = `#${S.Assert<Id>}`
+        Id = O.Get<StateNode, "id">,
+        States = O.Get<StateNode, "states", {}>,
+        IdPathString = `#${S.Assert<Id>}`
       > = 
-        | ( A.IsUndefined<Id> extends B.True ? never :
+        | ( Id extends undefined ? never :
               | IdPathString
               | ReferencePathString.WithRoot<StateNode, IdPathString>
           )
         | { [S in keyof States]:
-              ReferencePathString.Unresolved.OfIdWithRoot<O.Assert<States[S]>>
+              ReferencePathString.Unresolved.OfIdWithRoot<States[S]>
           }[keyof States]
 
-        Test.checks([
-          Test.check<
+        Type.tests([
+          Type.areEqual<
             ReferencePathString.Unresolved.OfIdWithRoot<{ id: "root", states: {
               a: { states: { a1: {}, a2: {} } },
               b: { id: "b", states: { b1: {}, b2: {} } }
@@ -115,17 +120,17 @@ export namespace ReferencePathString {
               | "#b"
               | "#b.b1"
               | "#b.b2"
-            , Test.Pass>()
+            >()
         ])
   }
 
   
 
   export type WithRoot<
-    StateNode extends A.Object,
-    StateReferencePathString extends A.String = "",
+    StateNode,
+    StateReferencePathString = "",
 
-    States extends A.Object = O.Assert<O.Prop<StateNode, "states", {}>>
+    States = O.Get<StateNode, "states", {}>
   > =
     | ( StateReferencePathString extends "" ? never :
         StateReferencePathString extends "." ? never :
@@ -133,13 +138,13 @@ export namespace ReferencePathString {
       )
     | { [S in keyof States]:
           WithRoot<
-            O.Assert<States[S]>,
-            ReferencePathString.Append<StateReferencePathString, S.Assert<S>>
+            States[S],
+            ReferencePathString.Append<StateReferencePathString, S>
           >
       }[keyof States]
 
-  Test.checks([
-    Test.check<
+  Type.tests([
+    Type.areEqual<
       ReferencePathString.WithRoot<{ states: {
         a: { states: { a1: {}, a2: {} } },
         b: { states: { b1: {}, b2: {} } }
@@ -150,11 +155,11 @@ export namespace ReferencePathString {
         | "b"
         | "b.b1"
         | "b.b2"
-      , Test.Pass>()
+      >()
   ])
 
-  export type Append<A extends A.String, B extends A.String> =
+  export type Append<A, B> =
     A extends "" ? B :
-    A extends "." ? `.${B}` :
-    `${A}.${B}`
+    A extends "." ? `.${S.Assert<B>}` :
+    `${S.Assert<A>}.${S.Assert<B>}`
 }

@@ -1926,11 +1926,6 @@ ts-node@^9.1.1:
     source-map-support "^0.5.17"
     yn "3.1.1"
 
-ts-toolbelt@^8.0.3:
-  version "8.0.3"
-  resolved "https://registry.yarnpkg.com/ts-toolbelt/-/ts-toolbelt-8.0.3.tgz#d4136466dfb731e8ad1f890303dae176beb27710"
-  integrity sha512-gxgyIVxf5B1ToZfA4cojFS3h2jPSxYWjvKehkuCVejMdnATeBdxY0tqCSr3okkwfSA3V5TBoWeYGVfLpMBfSMA==
-
 tunnel-agent@^0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/tunnel-agent/-/tunnel-agent-0.6.0.tgz#27a5dea06b36b04a0a9966774b290868f0fc40fd"
