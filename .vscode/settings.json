@@ -1,5 +1,10 @@
 {
-    "cSpell.words": ["scxml"],
+    "cSpell.words": [
+        "Lcca",
+        "datamodel",
+        "onentry",
+        "scxml"
+    ],
     "editor.rulers": [
         180
     ],

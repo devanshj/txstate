@@ -1,4 +1,4 @@
-import { O, A, L, B, Type, S } from "./extras";
+import { O, A, L, B, Type, S, U } from "./extras";
 import MachineDefinition from "./MachineDefinition";
 
 export namespace ReferencePathString {
@@ -16,11 +16,58 @@ export namespace ReferencePathString {
     O.Get<ParentNodePath, "length"> extends 0 ? [] :
     RegionRoot<ParentReferencePathString, RootNode>
 
+  /** is B descendant of A */
   export type IsDescendant<A, B> =
+    A extends B ? false :
     S.DoesStartWith<B, A>
 
+  /** is B ancestor of A */
   export type IsAncestor<A, B> =
+    A extends B ? false :
     IsDescendant<B, A>
+
+  export type Parent<A> = 
+    [A] extends [never] ? never :
+    A extends "" ? never :
+    L.Join<L.Popped<S.Split<A, ".">>, ".">
+
+  export type Child<A, D, S = ToNode<A, D>, C = keyof O.Get<S, "states">> =
+    [C] extends [never] ? never :
+    C extends any ? Append<A, C> : never
+
+  export type Children<A, D, C = Child<A, D>> =
+    [C] extends [never] ? [] : U.ToList<C>
+
+  export type Ancestor<A> =
+    [A] extends [never] ? never :
+    | Parent<A>
+    | Ancestor<Parent<A>>
+
+  Type.tests([
+    Type.areEqual<Ancestor<"a.b.c">, "" | "a" | "a.b">()
+  ])
+
+  export type ProperAncestors<A, B = never> =
+    [A] extends [never] ? [] :
+    [Parent<A>] extends [never] ? [] :
+    [Parent<A>] extends [B] ? [] :
+    [Parent<A>, ...ProperAncestors<Parent<A>, B>]
+
+  Type.tests([
+    Type.areEqual<ProperAncestors<"a.b.c">, ["a.b", "a", ""]>(),
+    Type.areEqual<ProperAncestors<"a.b.c", "a">, ["a.b"]>()
+  ])
+
+  export type ProperAncestorsReversed<A, B = never> =
+    [A] extends [never] ? [] :
+    [Parent<A>] extends [never] ? [] :
+    [Parent<A>] extends [B] ? [] :
+    [...ProperAncestorsReversed<Parent<A>, B>, Parent<A>]
+
+  Type.tests([
+    Type.areEqual<ProperAncestorsReversed<"a.b.c">, ["", "a", "a.b"]>(),
+    Type.areEqual<ProperAncestorsReversed<"a.b.c", "a">, ["a.b"]>()
+  ])
 
   export type FromDefinitionPath<Path> =
     O.Get<Path, "length"> extends 0 ? "" :
@@ -42,9 +89,29 @@ export namespace ReferencePathString {
     Type.areEqual<ToDefinitionPath<"a.b">, ["states", "a", "states", "b"]>(),
   ])
 
+  export type ToNode<ReferencePathString, Definition> =
+    O.Get<Definition, ToDefinitionPath<ReferencePathString>>
+
   export namespace Tuple {
     export type MapToDefinitionPath<T> =
       { [K in keyof T]: ToDefinitionPath<S.Assert<T[K]>> }
+
+    export namespace Unresolved {
+      export type ResolveWithStateNode<
+        Definition,
+        Precomputed,
+        TargetPathStringTuple,
+        StateReferencePathString
+      > = {
+        [I in keyof TargetPathStringTuple]:
+          ReferencePathString.Unresolved.ResolveWithStateNode<
+            Definition,
+            Precomputed,
+            StateReferencePathString,
+            TargetPathStringTuple[I]
+          >
+      }
+    }
   }
 
   export namespace Unresolved {
@@ -54,7 +121,9 @@ export namespace ReferencePathString {
       StateReferencePathString,
       TargetPathString,
 
-      SiblingStateIdentifier = keyof O.Get<O.Get<Definition, ReferencePathString.ToDefinitionPath<StateReferencePathString>>, "states">
+      SiblingStateIdentifier =
+        StateReferencePathString extends "" ? never :
+        keyof O.Get<ReferencePathString.ToNode<Parent<StateReferencePathString>, Definition>, "states">
     > =
       S.Assert<
         S.DoesStartWith<TargetPathString, "#"> extends B.True
@@ -69,18 +138,18 @@ export namespace ReferencePathString {
                   : never
               : O.KeyWithValue<
                   O.Assert<MachineDefinition.Precomputed.Get<Precomputed, "IdMap">>,
-                  S.Shift<TargetPathString>
+                  S.Shifted<TargetPathString>
                 > :
         S.DoesStartWith<TargetPathString, "."> extends B.True
           ? StateReferencePathString extends ""
-              ? S.Shift<TargetPathString>
+              ? S.Shifted<TargetPathString>
               : `${S.Assert<StateReferencePathString>}${S.Assert<TargetPathString>}` :
         B.Not<S.DoesContain<TargetPathString, ".">> extends B.True
           ? StateReferencePathString extends ""
               ? TargetPathString :
             TargetPathString extends SiblingStateIdentifier
               ? L.Join<
-                  L.Pushed<
+                  L.Push<
                     L.Popped<S.Split<StateReferencePathString, ".">>,
                     TargetPathString
                   >, "."

@@ -60,17 +60,47 @@ namespace MachineDefinition {
             { initial?: undefined } :
           { initial: keyof States }
         )
-      & { id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
+      & { id?: Id.Of<Definition, L.Push<Path, "id">, Precomputed>
         , on?: 
             & { [EventIdentifier in keyof On]:
                   EventIdentifier extends A.String
                     ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed>
                     : "Error: only string identifier allowed"
               }
-        , always?: Always.Of<Definition, L.Pushed<Path, "always">, Precomputed>
+        , always?: Always.Of<Definition, L.Push<Path, "always">, Precomputed>
         , __debugger?:
             { __Precomputed?: Partial<Precomputed> }
         }
+
+
+    export type Desugar<N, R> =
+      { type: O.Get<N, "type",
+          [keyof O.Get<N, "states", {}>] extends [never] ? "atomic" :
+          keyof O.Get<N, "initial"> extends undefined ? "parallel" :
+          "compound"
+        >
+      , initial:
+          O.Get<N, "initial"> extends infer Initial
+            ? Initial extends undefined ? undefined : 
+              Initial extends A.Object ? {
+                target: [ReferencePathString.Append<R, O.Get<Initial, "target">>],
+                actions: Actions.Desugar<O.Get<Initial, "actions">, ReferencePathString.Append<R, "initial.actions">>
+              } :
+              { target: [ReferencePathString.Append<R, Initial>], actions: [] }
+            : never
+      , states: O.Get<N, "states", {}> extends infer States
+          ? { [S in keyof States]: Desugar<States[S], ReferencePathString.Append<R, S>> }
+          : never
+      , id: O.Get<N, "id">
+      , on: O.Get<N, "on", {}> extends infer On
+          ? { [K in keyof On]: Transition.Desugar<On[K], ReferencePathString.Append<R, `on.${S.Assert<K>}`>> }
+          : never
+      , always: Transition.Desugar<O.Get<N, "always">, ReferencePathString.Append<R, "always">>
+      , entry: Actions.Desugar<O.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
+      , exit: Actions.Desugar<O.Get<N, "exit">, ReferencePathString.Append<R, "exit">>
+      , history: O.Get<N, "type"> extends "history" ? O.Get<N, "history", "shallow"> : undefined
+      , target: O.Get<N, "target">
+      }
   }
 
   export namespace Transition {
@@ -109,7 +139,7 @@ namespace MachineDefinition {
                                   : A.ReadonlyTuple<TargetPathString>
                               )
                         , internal?: boolean
-                        , cond?: any
+                        , guard?: any
                         }
                     }>>
                   : {
@@ -124,19 +154,20 @@ namespace MachineDefinition {
             | undefined
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Pushed<Path, "target">, Precomputed, StateNodePath>
+                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
-          , cond?: any
+          , guard?: any
           };
 
 
-    export type Desugar<T> =
+    export type Desugar<T, R> =
       ( T extends A.Object[] ? T :
         T extends A.Object ? [T] :
         T extends A.String | A.StringTuple ? [{ target: T }] :
-        never[]
+        T extends undefined ? [] :
+        never
       ) extends infer Ts
         ? { [K in keyof Ts]:
               { target:
@@ -144,11 +175,13 @@ namespace MachineDefinition {
                     ? T extends A.StringTuple ? T : [T]
                     : never
               , internal: O.Get<Ts[K], "internal", false>
-              , cond: O.Get<Ts[K], "cond", true>
-              , actions: O.Get<Ts[K], "actions", []>
+              , guard: O.Get<Ts[K], "guard", () => true>
+              , actions: Actions.Desugar<O.Get<Ts[K], "actions">, R>
+              , __referencePath: ReferencePathString.Append<R, K>
               }
           }
         : never
+          
   }
 
   export namespace Always {
@@ -179,7 +212,7 @@ namespace MachineDefinition {
                                 : A.ReadonlyTuple<ReferencePathString>
                             )
                       , internal?: boolean
-                      , cond?: any
+                      , guard?: any
                       }
                   }>>
                 : A.ReadonlyTuple<{
@@ -194,11 +227,11 @@ namespace MachineDefinition {
             | undefined
             | ReferencePathString
             | ( Self extends { target: A.ReadonlyTuple<ReferencePathString> }
-                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Pushed<Path, "target">, Precomputed, StateNodePath>
+                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
                   : A.ReadonlyTuple<ReferencePathString>
               )
           , internal?: boolean // TODO: enforce false for external
-          , cond?: any
+          , guard?: any
           };
 
     export declare const $$Event: unique symbol;
@@ -260,7 +293,7 @@ namespace MachineDefinition {
               }[number & keyof Self] extends infer Descendants
                 ? [Descendants] extends [never]
                     ? never
-                    : `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}`                : never)
+                    : `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}` : never)
           , { [J in keyof Self]:
                 J extends I ? never :
                 O.Get<RegionRootOf, I> extends O.Get<RegionRootOf, J> ? Self[J] :
@@ -323,5 +356,24 @@ namespace MachineDefinition {
           ? Self
           : `Ids should be unique, '${Self}' is already used`
         : "Ids should be strings"
+  }
+
+  export namespace Actions {
+    export type Desugar<A, R, DefaultActionType = "actions"> =
+      A extends undefined ? [] :
+      (A extends any[] ? A : [A]) extends infer A
+        ? { [I in keyof A]:
+            ( A[I] extends A.String ? { type: A[I] } :
+              A[I] extends A.Function ? {
+                type:
+                  A[I] extends { name: infer X }
+                    ? string extends X ? DefaultActionType : X
+                    : DefaultActionType,
+                exec: A[I]
+              } :
+              A[I]
+            ) & { __referencePath: ReferencePathString.Append<R, I> }
+          }
+        : never
   }
 }

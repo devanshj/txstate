@@ -1,4 +1,3 @@
-import { toMachine } from "xstate-monorepo/packages/core/src/scxml";
 import endent from "endent";
 import { mapValuesDeep, findPathDeep } from "deepdash/standalone";
 import fs from "fs/promises";
@@ -6,7 +5,7 @@ import path from "path";
 import { promisify } from "util"
 import _glob from "glob";
 const glob = promisify(_glob)
-
+const { toMachine } = require("xstate-monorepo/packages/core/src/scxml")
 
 let TEST_GLOBS = [
   "basic/*.scxml"
@@ -15,7 +14,7 @@ let TEST_GLOBS = [
 const main = async () => {
   let scxmlPaths = (await Promise.all(
     TEST_GLOBS
-    .map(g => glob(__dirname + "/../node_modules/@scion-scxml/test-framework/test/" + g))
+    .map(g => glob(__dirname + "/../../node_modules/@scion-scxml/test-framework/test/" + g))
   )).flat();
   
   scxmlPaths.forEach(async scxmlPath => {
@@ -53,7 +52,7 @@ const createTestFile = ({ scxml, scion }: {
     scion,
     (value, key) =>
       key === "initialConfiguration" || key === "nextConfiguration"
-        ? (xs => xs.length === 1 ? xs[0] : xs)((value as string[]).map(id =>
+        ? (value as string[]).map(id =>
             (findPathDeep(
               definition,
               (value, key) => key === "id" && value === id,
@@ -61,7 +60,7 @@ const createTestFile = ({ scxml, scion }: {
             ) as string[])
             .filter(p => p !== "states" && p !== "id")
             .join(".")
-          ))
+          )
         : value
   )
 
@@ -77,9 +76,9 @@ const createTestFile = ({ scxml, scion }: {
   ).join("\n")}
 
   Test.checks([
-    Test.check<O.Prop<Instant0, "state">, "${scion.initialConfiguration}", Test.Pass>(),
+    Test.check<O.Prop<Instant0, "state">, ${endent.pretty(scion.initialConfiguration)}, Test.Pass>(),
     ${scion.events.map(({ nextConfiguration }, i) =>
-    `Test.check<O.Prop<Instant${i+1}, "state">, "${nextConfiguration}", Test.Pass>()`
+    `Test.check<O.Prop<Instant${i+1}, "state">, ${endent.pretty(nextConfiguration)}, Test.Pass>()`
     ).join(",\n")}
   ])
   `
