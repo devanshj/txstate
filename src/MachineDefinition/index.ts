@@ -1,10 +1,16 @@
 import { O, A, U, L, B, Type, S } from "../extras";
+import MachineInstant from "../MachineInstant";
 import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
 namespace MachineDefinition {
   export type Of<Definition> =
-    & StateNode.Of<Definition, [], Precomputed.Of<Definition>>
+    & StateNode.Of<
+        Definition, [],
+        Precomputed.Of<Definition> extends infer P
+          ? P & { "MachineInstantMap": MachineInstant.Map<Definition, P> }
+          : never
+      >
     & { context?: "TODO" };
 
   export namespace Precomputed {
@@ -14,6 +20,7 @@ namespace MachineDefinition {
         | "ReferencePathString.OfId"
         | "ReferencePathString"
         | "IdMap"
+        | "MachineInstantMap"
     > =
       O.Get<Precomputed, Key>
 
@@ -68,8 +75,8 @@ namespace MachineDefinition {
                     : "Error: only string identifier allowed"
               }
         , always?: Always.Of<Definition, L.Push<Path, "always">, Precomputed>
-        , __debugger?:
-            { __Precomputed?: Partial<Precomputed> }
+        , entry?:
+            Entry.Of<Definition, L.Push<Path, "entry">, Precomputed>
         }
 
 
@@ -357,6 +364,38 @@ namespace MachineDefinition {
           : `Ids should be unique, '${Self}' is already used`
         : "Ids should be strings"
   }
+
+  export namespace Entry {
+    export type Of<
+      Definition,
+      Path,
+      Precomputed,
+      Self = O.Get<Definition, Path>,
+      NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
+      MachineInstantMap = Precomputed.Get<Precomputed, "MachineInstantMap">,
+    > =
+      ( context: "TODO"
+      , event: EntryEvent<MachineInstantMap, NodeReferencePathString>
+      ) => void
+
+    type EntryEvent<MachineInstantMap, NodeReferencePathString> =
+      MachineInstantMap extends infer M
+        ? M extends any
+            ? M extends
+                { event: infer E
+                , next:
+                    { actions: 
+                        L.AnyContaining<{
+                          __referencePath: `${S.Assert<NodeReferencePathString>}.entry.0`
+                        }>
+                    }
+                }
+                  ? E
+                  : never
+            : never
+        : never
+  }
+
 
   export namespace Actions {
     export type Desugar<A, R, DefaultActionType = "actions"> =

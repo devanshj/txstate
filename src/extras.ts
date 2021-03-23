@@ -149,6 +149,14 @@ export namespace L {
   Type.tests([
     Type.areEqual<L.ConcatS<["a", "b", "c"], ["d", "a", "e"]>, ["a", "b", "c", "d", "e"]>()
   ])
+
+  export type AnyContaining<X> =
+    | [...any[], X]
+    | [...any[], X, any]
+    | [...any[], X, any, any]
+    | [...any[], X, any, any, any]
+    | [...any[], X, any, any, any, any]
+    | [...any[], X, any, any, any, any, any]
 }
 
 export namespace A {

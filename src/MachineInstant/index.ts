@@ -1,9 +1,12 @@
 import { O, L, N, A, Type, F, U, S } from "../extras";
 import MachineDefinition from "../MachineDefinition";
 import { ReferencePathString } from "../universal";
+import MachineInstantMap from "./map";
 
 export default MachineInstant;
 namespace MachineInstant {
+  export type Map<D, P> = MachineInstantMap.Of<D, P>
+
   export type Transition<
     Definition, Precomputed, Instant,
     Event,
@@ -699,7 +702,7 @@ namespace MachineInstant {
     >()
   ])
 
-  type SortWithEntryOrder<
+  export type SortWithEntryOrder<
     States,
     Childest = AtomicStatesFromConfiguration<States>,
     ChildestWithAncestors = L.FilterDuplicates<L.ConcatAll<{
