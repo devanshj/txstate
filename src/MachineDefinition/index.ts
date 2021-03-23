@@ -272,8 +272,8 @@ namespace MachineDefinition {
               ReferencePathString.Unresolved.ResolveWithStateNode<
                 Definition,
                 Precomputed,
-                StateReferencePathString,
-                Self[I]
+                Self[I],
+                StateReferencePathString
               >
           },
         RegionRootOf =

@@ -107,8 +107,8 @@ export namespace ReferencePathString {
           ReferencePathString.Unresolved.ResolveWithStateNode<
             Definition,
             Precomputed,
-            StateReferencePathString,
-            TargetPathStringTuple[I]
+            TargetPathStringTuple[I],
+            StateReferencePathString
           >
       }
     }
@@ -118,8 +118,8 @@ export namespace ReferencePathString {
     export type ResolveWithStateNode<
       Definition,
       Precomputed,
-      StateReferencePathString,
       TargetPathString,
+      StateReferencePathString,
 
       SiblingStateIdentifier =
         StateReferencePathString extends "" ? never :
