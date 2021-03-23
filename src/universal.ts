@@ -1,4 +1,4 @@
-import { O, A, L, B, Type, S, U } from "./extras";
+import { O, L, B, Type, S, U, N } from "./extras";
 import MachineDefinition from "./MachineDefinition";
 
 export namespace ReferencePathString {
@@ -120,12 +120,16 @@ export namespace ReferencePathString {
       Precomputed,
       TargetPathString,
       StateReferencePathString,
+      ParentStateReferencePathString = Parent<StateReferencePathString>,
 
       SiblingStateIdentifier =
         StateReferencePathString extends "" ? never :
-        keyof O.Get<ReferencePathString.ToNode<Parent<StateReferencePathString>, Definition>, "states">
+        keyof O.Get<ReferencePathString.ToNode<ParentStateReferencePathString, Definition>, "states">,
+      ChildStateIdentifier =
+        keyof O.Get<ReferencePathString.ToNode<StateReferencePathString, Definition>, "states">
     > =
       S.Assert<
+        // id
         S.DoesStartWith<TargetPathString, "#"> extends B.True
           ? S.DoesContain<TargetPathString, "."> extends B.True
               ? TargetPathString extends `#${infer Id}.${infer RestPath}`
@@ -140,22 +144,22 @@ export namespace ReferencePathString {
                   O.Assert<MachineDefinition.Precomputed.Get<Precomputed, "IdMap">>,
                   S.Shifted<TargetPathString>
                 > :
+        // relative children
         S.DoesStartWith<TargetPathString, "."> extends B.True
           ? StateReferencePathString extends ""
               ? S.Shifted<TargetPathString>
               : `${S.Assert<StateReferencePathString>}${S.Assert<TargetPathString>}` :
-        B.Not<S.DoesContain<TargetPathString, ".">> extends B.True
-          ? StateReferencePathString extends ""
-              ? TargetPathString :
-            TargetPathString extends SiblingStateIdentifier
-              ? L.Join<
-                  L.Push<
-                    L.Popped<S.Split<StateReferencePathString, ".">>,
-                    TargetPathString
-                  >, "."
-                > :
-            TargetPathString
-        : TargetPathString
+        // children
+        [ S.DoesStartWith<TargetPathString, ChildStateIdentifier>
+        , [ChildStateIdentifier] extends [never] ? B.False : B.True
+        ] extends [B.True, B.True]
+          ? ReferencePathString.Append<StateReferencePathString, TargetPathString> :
+        // sibling
+        [ S.DoesStartWith<TargetPathString, SiblingStateIdentifier>
+        , [SiblingStateIdentifier] extends [never] ? B.False : B.True
+        ] extends [B.True, B.True]
+          ? ReferencePathString.Append<ParentStateReferencePathString, TargetPathString> :
+        never
       >
 
       export type OfIdWithRoot<
@@ -198,6 +202,7 @@ export namespace ReferencePathString {
   export type WithRoot<
     StateNode,
     StateReferencePathString = "",
+    Depth = 20,
 
     States = O.Get<StateNode, "states", {}>
   > =
@@ -205,12 +210,16 @@ export namespace ReferencePathString {
         StateReferencePathString extends "." ? never :
         StateReferencePathString
       )
-    | { [S in keyof States]:
-          WithRoot<
-            States[S],
-            ReferencePathString.Append<StateReferencePathString, S>
-          >
-      }[keyof States]
+    | ( N.IsGreaterThan<Depth, 0> extends true
+          ? { [S in keyof States]:
+              WithRoot<
+                States[S],
+                ReferencePathString.Append<StateReferencePathString, S>,
+                N.Decrement<Depth>
+              >
+            }[keyof States]
+          : never
+      )
 
   Type.tests([
     Type.areEqual<

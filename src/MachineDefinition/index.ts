@@ -119,12 +119,23 @@ namespace MachineDefinition {
 
         Self = O.Get<Definition, Path>,
         StateNodePath = L.Popped<L.Popped<Path>>,
+        IsRoot = O.Get<StateNodePath, "length"> extends 0 ? true : false,
         StateNode = O.Get<Definition, StateNodePath>,
+        SiblingIdentifier = IsRoot extends true ? never : keyof O.Get<Definition, L.Popped<StateNodePath>>,
         TargetPathString =
           | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
+          | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
           | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
-          | ( Precomputed.Get<Precomputed, "ReferencePathString"> extends infer X ? S.Assert<X> : never )
-          | ( O.Get<StateNodePath, "length"> extends 0 ? never : keyof O.Get<Definition, L.Popped<StateNodePath>> )
+          | ( [SiblingIdentifier] extends [never]
+                ? never
+                : SiblingIdentifier extends any
+                    ? ReferencePathString.WithRoot<
+                        O.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
+                        SiblingIdentifier,
+                        2
+                      > extends infer X ? S.Assert<X> : never
+                    : never
+            )
       > =
         ( Self extends { target: any } ? never :
             ( Self extends A.Object[] ? never :
@@ -200,12 +211,23 @@ namespace MachineDefinition {
         
         Self = O.Get<Definition, Path>,
         StateNodePath = L.Popped<Path>, // TODO: only diff, try to reuse Transition.Of
+        IsRoot = O.Get<StateNodePath, "length"> extends 0 ? true : false,
         StateNode = O.Get<Definition, StateNodePath>,
-        ReferencePathString =
+        SiblingIdentifier = IsRoot extends true ? never : keyof O.Get<Definition, L.Popped<StateNodePath>>,
+        TargetPathString =
           | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
+          | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
           | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
-          | ( Precomputed.Get<Precomputed, "ReferencePathString"> extends infer X ? S.Assert<X> : never )
-          | ( O.Get<StateNodePath, "length"> extends 0 ? never : keyof O.Get<Definition, L.Popped<StateNodePath>> )
+          | ( [SiblingIdentifier] extends [never]
+                ? never
+                : SiblingIdentifier extends any
+                    ? ReferencePathString.WithRoot<
+                        O.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
+                        SiblingIdentifier,
+                        2
+                      > extends infer X ? S.Assert<X> : never
+                    : never
+            )
       > =
         ( Self extends { target: any } ? never :
           | ( Self extends A.ReadonlyTuple<A.Object>
@@ -213,10 +235,10 @@ namespace MachineDefinition {
                     [K in keyof Self]:
                       { target?:
                           | undefined
-                          | ReferencePathString
-                          | ( O.Get<Self[K], "target"> extends A.ReadonlyTuple<ReferencePathString>
+                          | TargetPathString
+                          | ( O.Get<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
                                 ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
-                                : A.ReadonlyTuple<ReferencePathString>
+                                : A.ReadonlyTuple<TargetPathString>
                             )
                       , internal?: boolean
                       , guard?: any
@@ -225,17 +247,17 @@ namespace MachineDefinition {
                 : A.ReadonlyTuple<{
                     target:
                       | undefined
-                      | ReferencePathString
-                      | A.ReadonlyTuple<ReferencePathString>
+                      | TargetPathString
+                      | A.ReadonlyTuple<TargetPathString>
                   }>
             )
         )
         | { target?:
             | undefined
-            | ReferencePathString
-            | ( Self extends { target: A.ReadonlyTuple<ReferencePathString> }
+            | TargetPathString
+            | ( Self extends { target: A.ReadonlyTuple<TargetPathString> }
                   ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
-                  : A.ReadonlyTuple<ReferencePathString>
+                  : A.ReadonlyTuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
           , guard?: any
