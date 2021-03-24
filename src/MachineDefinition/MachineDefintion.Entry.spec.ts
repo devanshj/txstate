@@ -6,17 +6,21 @@ Machine({
   states: {
     a: {
       on: {
-        FOO: "b",
+        FOO: "b.b1",
         BAR: "c"
       }
     },
     b: {
+      initial: "b1",
+      states: {
+        b1: {},
+        b2: {}
+      },
       entry: (context, event) => {
         Type.tests([
           Type.areEqual<typeof event, { type: "FOO" }>()
         ])
-      },
-      _: null
+      }
     },
     c: {}
   }

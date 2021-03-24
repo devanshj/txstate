@@ -271,25 +271,24 @@ namespace MachineInstant {
     }>>;
   
   // TODO: don't expand if already descendent of a state in set
-  type ExpandParallelsInEntrySet<D, P, I, States> =
-    L.ConcatAll<{ [J in keyof States]:
-      IsParallelState<D, P, I, States[J]> extends false ? [] :
-      ReferencePathString.Children<States[J], D> extends infer Children
-        ? L.ConcatAll<{
-            [K in keyof Children]: DescendantEnteringStates<D, P, I, Children[K]>
-          }>
-        : never
-    }>;
+  type ExpandParallelInEntrySet<D, P, I, State> =
+    IsParallelState<D, P, I, State> extends false ? [] :
+    ReferencePathString.Children<State, D> extends infer Children
+      ? L.ConcatAll<{
+          [K in keyof Children]: DescendantEnteringStates<D, P, I, Children[K]>
+        }>
+      : never
 
   
 
-  type TestDoEntrySet<D, I, Ts, D_ = Ds<D>, P_ = P<D>> =
+  type TestEntrySet<D, I, Ts, D_ = Ds<D>, P_ = P<D>> =
     EntrySetWithDefaultHistoryActions<D_, P_, I, Ts>
+
 
   /* TODO: works only for lang server not tsc
   Type.tests([
     Type.areEqual<
-      TestDoEntrySet<
+      TestEntrySet<
         {
           states: {
             a: {},
@@ -355,7 +354,7 @@ namespace MachineInstant {
           [State & { isDefaultEntry: IsCompound }],
           IsCompound extends true 
             ? EnteringStatesFromTarget<D, P, I, InitialTarget, State>
-            : ExpandParallelsInEntrySet<D, P, I, [State]>
+            : ExpandParallelInEntrySet<D, P, I, State>
         >
 
 
@@ -364,8 +363,18 @@ namespace MachineInstant {
     expandParallels(properAncestors(state, ancestor))
   */
 
-  type AncestorEnteringStates<D, P, I, State, Ancestor> =
-  ExpandParallelsInEntrySet<D, P, I, ReferencePathString.ProperAncestors<State, Ancestor>>
+  type AncestorEnteringStates<D, P, I, State, Ancestor,
+    States = ReferencePathString.ProperAncestors<State, Ancestor>
+  > =
+    L.ConcatAll<{
+      [J in keyof States]:
+        L.Concat<
+          [States[J]],
+          ExpandParallelInEntrySet<D, P, I, States[J]>
+        >
+    }>
+      
+            
 
   /*
   const enteringStatesFromTarget = (target, source) =>
