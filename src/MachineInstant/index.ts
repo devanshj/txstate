@@ -129,7 +129,9 @@ namespace MachineInstant {
 
   // TODO
   type DoExecuteActions<D, P, I, Actions> =
-    O.Update<I, { actions: L.Concat<O.Get<I, "actions", []>, Actions> }>
+    O.Get<I, "actions", []> extends infer As
+      ? O.Update<I, { actions: L.Concat<As, Actions> }>
+      : never
 
 
   /* 
