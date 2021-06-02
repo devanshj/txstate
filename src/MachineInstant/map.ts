@@ -1,25 +1,59 @@
 import MachineInstant from ".";
-import { B, N, O, Type, U, L, A } from "../extras";
+import { B, N, O, Type, U, L, A, S } from "../extras";
 import MachineDefinition from "../MachineDefinition";
 import { ReferencePathString } from "../universal";
 
 export default MachineInstantMap;
 namespace MachineInstantMap {
 
-  export type Of<_D, P, D = MachineDefinition.StateNode.Desugar<_D, "">> = 
-    Event<D> extends infer E ? E extends any
-      ? Configuration<D> extends infer C ? C extends any
-          ? { event: E
-            , current: C
-            , next: MachineInstant.Transition<D, P, { configuration: C, actions: [] }, E>
-            }
-          : never : never
-      : never : never
+  export type Of<_D, P, D = MachineDefinition.StateNode.Desugar<_D, "">,
+    C = Configuration<D>,
+    E = Event<D>,
+    CE = C extends any ? E extends any ? EncodeConfigurationEventPair<[C, E]> : never : never
+  > =
+    { [CE_ in S.Assert<CE>]:
+      DecodeConfigurationEventPair<CE_> extends [infer C_, infer E_]
+        ? E extends E_
+          ? MachineInstant.Transition<D, P,
+              { configuration: C_, actions: [] },
+              E
+            >
+          : never
+        : never
+    }
     
 
   type TestMap<D> =
     Of<D, MachineDefinition.Precomputed.Of<D>>
 
+  type Lol = EntryEvent<Foo, "c"> extends { [_ in keyof any]: infer X } ? X : never
+
+  type EntryEvent<MachineInstantMap, NodeReferencePathString> =
+    { [CE in keyof MachineInstantMap]:
+        L.IncludesSubtype<
+          O.Get<MachineInstantMap[CE], "actions">,
+          { __referencePath: `${S.Assert<NodeReferencePathString>}.entry.0` }
+        > extends true
+          ? O.Get<DecodeConfigurationEventPair<CE>, 1>
+          : never
+    }
+
+
+  type Foo = TestMap<{
+    initial: "a",
+    states: {
+      a: {
+        on: { FOO: "b" }
+      },
+      b: {
+        always: { target: "c" },
+        on: { BAR: "a" }
+      },
+      c: {
+        entry: () => void
+      }
+    }
+  }>
 
   Type.tests([
     Type.areEqual<
@@ -36,30 +70,32 @@ namespace MachineInstantMap {
           }
         }
       }>,
-      | { event: { type: "TO_B" }
-        , current: ["", "b"]
-        , next:
-            { configuration: ["", "b"]
-            , actions: []
-            }
+      { ",b|TO_B":
+        { configuration: ["", "b"]
+        , actions: []
         }
-      | { event: { type: "TO_B" }
-        , current: ["", "a"]
-        , next:
-            { configuration: ["", "b"]
-            , historyValue: {}
-            , actions:
-              [ { type: "actions"
-                , exec: () => {}
-                , __referencePath: "b.entry.0"
-                ,
-                }
-              ]
+      , ",a|TO_B":
+        { configuration: ["", "b"]
+        , historyValue: {}
+        , actions:
+          [ { type: "actions"
+            , exec: () => {}
+            , __referencePath: "b.entry.0"
+            ,
             }
+          ]
         }
+      }
     >()
   ])
 
+
+  export type EncodeConfigurationEventPair<CE> =
+    `${L.Join<O.Get<CE, 0>, ",">}|${S.Assert<O.Get<O.Get<CE, 1>, "type">>}`
+  export type DecodeConfigurationEventPair<S> =
+    S extends `${infer C}|${infer E}`
+      ? [S.Split<C, ",">, { type: E }]
+      : never
 
   type Configuration<D> =
     ActiveAtomicStates<D, ""> extends infer S

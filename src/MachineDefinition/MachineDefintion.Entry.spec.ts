@@ -25,3 +25,22 @@ Machine({
     c: {}
   }
 })
+
+Machine({
+  initial: "a",
+  states: {
+    a: {
+      on: { FOO: "b" }
+    },
+    b: {
+      always: { target: "c" },
+      on: { BAR: "a" }
+    },
+    c: {
+      _: null,
+      entry: (c, e) => {
+
+      }
+    }
+  }
+})

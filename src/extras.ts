@@ -36,6 +36,8 @@ export namespace O {
           { [_ in A.Cast<O.Get<A[I], 0>, keyof any>]: O.Get<A[I], 1> }
       }, number>
     >
+
+  export type LazyValues<A> = A extends { [_ in keyof any]: infer V } ? V : never;
 }
 
 export namespace L {
@@ -83,6 +85,9 @@ export namespace L {
   }
 
   export type Includes<A, X> = X extends O.Get<A, number> ? true : false;
+  export type IncludesSubtype<A, X> =
+    A extends [] ? false :
+    O.Get<A, number> extends X ? true : false;
 
   export type DistributeThenFilter<L, X> =
     L extends any ? Filter<L, X> : never;
@@ -235,6 +240,7 @@ export namespace B {
 
 export namespace F {
   export type Call<F> = F extends (...args: any[]) => infer R ? R : never;
+  export type Parameters<F> = F extends (...args: infer A) => any ? A : never;
 }
 
 export namespace S {

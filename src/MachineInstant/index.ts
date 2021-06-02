@@ -6,6 +6,8 @@ import MachineInstantMap from "./map";
 export default MachineInstant;
 namespace MachineInstant {
   export type Map<D, P> = MachineInstantMap.Of<D, P>
+  export type EncodeConfigurationEventPair<CE> = MachineInstantMap.EncodeConfigurationEventPair<CE>
+  export type DecodeConfigurationEventPair<S> = MachineInstantMap.DecodeConfigurationEventPair<S>
 
   export type Transition<
     Definition, Precomputed, Instant,

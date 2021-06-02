@@ -1,4 +1,4 @@
-import { O, A, U, L, B, Type, S } from "../extras";
+import { O, A, U, L, B, Type, S, F } from "../extras";
 import MachineInstant from "../MachineInstant";
 import { ReferencePathString } from "../universal";
 
@@ -394,28 +394,22 @@ namespace MachineDefinition {
       Precomputed,
       Self = O.Get<Definition, Path>,
       NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
-      MachineInstantMap = Precomputed.Get<Precomputed, "MachineInstantMap">,
+      MachineInstantMap = Precomputed.Get<Precomputed, "MachineInstantMap">
     > =
       ( context: "TODO"
-      , event: EntryEvent<MachineInstantMap, NodeReferencePathString>
+      , event: _EntryEvent<MachineInstantMap, NodeReferencePathString> extends { [_ in keyof any]: infer X } ? X : never
       ) => void
 
-    type EntryEvent<MachineInstantMap, NodeReferencePathString> =
-      MachineInstantMap extends infer M
-        ? M extends any
-            ? M extends
-                { event: infer E
-                , next:
-                    { actions: 
-                        L.AnyContaining<{
-                          __referencePath: `${S.Assert<NodeReferencePathString>}.entry.0`
-                        }>
-                    }
-                }
-                  ? E
-                  : never
+    type _EntryEvent<MachineInstantMap, NodeReferencePathString> =
+      { [CE in keyof MachineInstantMap]:
+        MachineInstantMap[CE] extends
+          { actions:
+              L.AnyContaining<
+                { __referencePath: `${S.Assert<NodeReferencePathString>}.entry.0` }
+              >
+          } ? O.Get<MachineInstant.DecodeConfigurationEventPair<CE>, 1>
             : never
-        : never
+      }
   }
 
 
