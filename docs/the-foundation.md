@@ -116,11 +116,11 @@ type Prop<T, K> = K extends keyof T ? T[K] : never;
 I realized this shortcoming of this technique... Then I don't remember what happened but I came up with this... Also btw let me tell you the journey was not so simple or linear at all, heck I don't even remember how it was, so what I'm saying is probably 60% of how it happened but nonetheless I think it's working for the story telling xD... Okay yeah back to what I came up with...
 
 ```typescript
-declare const createMachine: <N extends StateNode<N, []>>(config: C) => void
+declare const createMachine: <N extends StateNode<N, []>>(config: N) => void
 
 type StateNode<Root, Path, Self = OPath<Root, Path>> =
-  { initial: Initial<Root, [...Path, "initial"]>
-  , states: States<Root, [...Path, "states"]>
+  { initial: Initial<Root, LAppend<Path, "initial">>
+  , states: States<Root, LAppend<Path, "states">>
   }
 
 type Initial<Root, Path, Self = OPath<Root, Path>> =
@@ -133,7 +133,8 @@ type OPath<O, P> = P extends [] ? O : OPath<Prop<O, LHead<P>>, LShifted<P>>
 type LHead<L> = L extends [infer H, ...any[]] ? H : never;
 type LShifted<L> = L extends [any, ...infer Shifted] ? Shifted : never;
 type LPopped<L> = L extends [...infer Popped, any] ? Popped : never;
-type LAppend<L, X> = [...L, X];
+type LAppend<L, X> = [...Cast<L, any[]>, X];
+type Cast<T, U> = T extends U ? T : U;
 type Prop<T, K> = K extends keyof T ? T[K] : never;
 ```
 
