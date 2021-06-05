@@ -8,7 +8,7 @@ Machine({
       on: {
         FOO: "b.b1",
         BAR: "c"
-      }
+      },
     },
     b: {
       initial: "b1",
@@ -16,7 +16,7 @@ Machine({
         b1: {},
         b2: {}
       },
-      entry: (context, event) => {
+      entry: (_, event) => {
         Type.tests([
           Type.areEqual<typeof event, { type: "FOO" }>()
         ])
@@ -37,10 +37,69 @@ Machine({
       on: { BAR: "a" }
     },
     c: {
-      _: null,
-      entry: (c, e) => {
-
+      entry: (_, event) => {
+        Type.tests([
+          Type.areEqual<typeof event, { type: "FOO" }>()
+        ])
       }
     }
   }
+})
+
+
+Machine({
+  initial: "a",
+  states: {
+    a: {}
+  },
+  on: {
+    X: { target: ".a" }
+  },
+  entry: (_, event) => {
+    Type.tests([
+      Type.areEqual<typeof event, never>()
+    ])
+  }
+})
+
+Machine({
+  initial: "a",
+  states: {
+    a: {}
+  },
+  on: {
+    X: { target: ".a", internal: false }
+  },
+  entry: (_, event) => {
+    Type.tests([
+      Type.areEqual<typeof event, { type: "X" }>()
+    ])
+  }
+})
+
+Machine({
+  initial: "a",
+  states: {
+    a: {
+      _: null,
+      entry: (_, event) => {
+        Type.tests([
+          Type.areEqual<typeof event, { type: "X" }>()
+        ])
+      }
+    },
+    b: {
+      entry: (_, event) => {
+        Type.tests([
+          Type.areEqual<typeof event, { type: "X" }>()
+        ])
+      }
+    }
+  },
+  on: {
+    X: [
+      { target: ".a" },
+      { target: ".b" }
+    ]
+  },
 })

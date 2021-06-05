@@ -1,5 +1,5 @@
 import { O, A, U, L, B, Type, S, F } from "../extras";
-import MachineInstant from "../MachineInstant";
+import MachineExtras from "../MachineExtras";
 import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
@@ -7,9 +7,7 @@ namespace MachineDefinition {
   export type Of<Definition> =
     & StateNode.Of<
         Definition, [],
-        Precomputed.Of<Definition> extends infer P
-          ? P & { "MachineInstantMap": MachineInstant.Map<Definition, P> }
-          : never
+        Precomputed.Of<Definition>
       >
     & { context?: "TODO" };
 
@@ -20,7 +18,7 @@ namespace MachineDefinition {
         | "ReferencePathString.OfId"
         | "ReferencePathString"
         | "IdMap"
-        | "MachineInstantMap"
+        | "DesugaredDefinition"
     > =
       O.Get<Precomputed, Key>
 
@@ -28,6 +26,7 @@ namespace MachineDefinition {
       { "ReferencePathString.OfId": ReferencePathString.Unresolved.OfIdWithRoot<Definition>
       , "ReferencePathString": ReferencePathString.WithRoot<Definition>
       , "IdMap": IdMap.WithRoot<Definition>
+      , "DesugaredDefinition": StateNode.Desugar<Definition, "">
       }
   }
 
@@ -69,14 +68,13 @@ namespace MachineDefinition {
         )
       & { id?: Id.Of<Definition, L.Push<Path, "id">, Precomputed>
         , on?: 
-            & { [EventIdentifier in keyof On]:
-                  EventIdentifier extends A.String
-                    ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed>
-                    : "Error: only string identifier allowed"
-              }
+            { [EventIdentifier in keyof On]:
+                EventIdentifier extends A.String
+                  ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed>
+                  : "Error: only string identifier allowed"
+            }
         , always?: Always.Of<Definition, L.Push<Path, "always">, Precomputed>
-        , entry?:
-            Entry.Of<Definition, L.Push<Path, "entry">, Precomputed>
+        , entry?: Entry.Of<Definition, L.Push<Path, "entry">, Precomputed>
         }
 
 
@@ -157,7 +155,6 @@ namespace MachineDefinition {
                                   : A.ReadonlyTuple<TargetPathString>
                               )
                         , internal?: boolean
-                        , guard?: any
                         }
                     }>>
                   : {
@@ -165,6 +162,7 @@ namespace MachineDefinition {
                         | undefined
                         | TargetPathString
                         | A.ReadonlyTuple<TargetPathString>
+                      , internal?: boolean
                     }[]
               )
         )
@@ -176,30 +174,38 @@ namespace MachineDefinition {
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
-          , guard?: any
           };
 
 
     export type Desugar<T, R> =
       ( T extends A.Object[] ? T :
         T extends A.Object ? [T] :
-        T extends A.String | A.StringTuple ? [{ target: T }] :
+        T extends A.String | A.Tuple ? [{ target: T }] :
         T extends undefined ? [] :
         never
       ) extends infer Ts
         ? { [K in keyof Ts]:
               { target:
                   O.Get<Ts[K], "target"> extends infer T
-                    ? T extends A.StringTuple ? T : [T]
+                    ? T extends A.Tuple ? T : [T]
                     : never
-              , internal: O.Get<Ts[K], "internal", false>
+              , internal: O.Get<Ts[K], "internal">
               , guard: O.Get<Ts[K], "guard", () => true>
               , actions: Actions.Desugar<O.Get<Ts[K], "actions">, R>
               , __referencePath: ReferencePathString.Append<R, K>
-              }
+              } extends infer Target
+                ? O.Update<Target, {
+                    internal: L.Every<{ [I in keyof O.Get<Target, "target">]: 
+                      O.Get<Target, "target">[I] extends infer T
+                        ? S.DoesStartWith<T, "."> extends true ? O.Get<Target, "internal", true> :
+                          T extends undefined ? O.Get<Target, "internal", true> :
+                          false
+                        : never
+                    }>
+                  }>
+                : false
           }
         : never
-          
   }
 
   export namespace Always {
@@ -241,7 +247,6 @@ namespace MachineDefinition {
                                 : A.ReadonlyTuple<TargetPathString>
                             )
                       , internal?: boolean
-                      , guard?: any
                       }
                   }>>
                 : A.ReadonlyTuple<{
@@ -249,6 +254,7 @@ namespace MachineDefinition {
                       | undefined
                       | TargetPathString
                       | A.ReadonlyTuple<TargetPathString>
+                    , internal?: boolean
                   }>
             )
         )
@@ -260,11 +266,7 @@ namespace MachineDefinition {
                   : A.ReadonlyTuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
-          , guard?: any
           };
-
-    export declare const $$Event: unique symbol;
-    export type $$Event = typeof $$Event
   }
 
   export namespace ParallelReferencePathStrings {
@@ -393,23 +395,15 @@ namespace MachineDefinition {
       Path,
       Precomputed,
       Self = O.Get<Definition, Path>,
-      NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
-      MachineInstantMap = Precomputed.Get<Precomputed, "MachineInstantMap">
+      NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>
     > =
       ( context: "TODO"
-      , event: _EntryEvent<MachineInstantMap, NodeReferencePathString> extends { [_ in keyof any]: infer X } ? X : never
+      , event: MachineExtras.EntryEventForStateNode<
+          Precomputed.Get<Precomputed, "DesugaredDefinition">,
+          Precomputed,
+          NodeReferencePathString
+        >
       ) => void
-
-    type _EntryEvent<MachineInstantMap, NodeReferencePathString> =
-      { [CE in keyof MachineInstantMap]:
-        MachineInstantMap[CE] extends
-          { actions:
-              L.AnyContaining<
-                { __referencePath: `${S.Assert<NodeReferencePathString>}.entry.0` }
-              >
-          } ? O.Get<MachineInstant.DecodeConfigurationEventPair<CE>, 1>
-            : never
-      }
   }
 
 

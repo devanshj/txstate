@@ -37,7 +37,7 @@ export namespace O {
       }, number>
     >
 
-  export type LazyValues<A> = A extends { [_ in keyof any]: infer V } ? V : never;
+  export type Values<A> = A[keyof A]
 }
 
 export namespace L {
@@ -84,7 +84,10 @@ export namespace L {
     export type Out = typeof Out;
   }
 
-  export type Includes<A, X> = X extends O.Get<A, number> ? true : false;
+  export type Includes<A, X> =
+    A extends [] ? false :
+    X extends O.Get<A, number> ? true : false;
+
   export type IncludesSubtype<A, X> =
     A extends [] ? false :
     O.Get<A, number> extends X ? true : false;
@@ -152,7 +155,7 @@ export namespace L {
       : never
 
   Type.tests([
-    Type.areEqual<L.ConcatS<["a", "b", "c"], ["d", "a", "e"]>, ["a", "b", "c", "d", "e"]>()
+    Type.areEqual<L.ConcatS<["a", "b", "c"], ["d", "a", "e"]>, ["a", "b", "c", "d", "e"]>(X => {})
   ])
 
   export type AnyContaining<X> =
@@ -179,10 +182,13 @@ export namespace A {
     T extends any
       ? ( T extends A.Tuple ? readonly [...L.Assert<T>] :
           T extends A.Function ? T :
-          T extends A.Object ? { readonly [K in keyof T]: InferNarrowest<T[K]> } :
+          T extends A.Object ? InferNarrowestObject<T> :
           T
         )
       : never
+
+  export type InferNarrowestObject<T> =
+    { readonly [K in keyof T]: InferNarrowest<T[K]> }
 
   export type AreEqual<A, B> =
     (<T>() => T extends B ? 1 : 0) extends (<T>() => T extends A ? 1 : 0)
