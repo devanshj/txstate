@@ -1,13 +1,21 @@
-import { Machine } from "..";
+import { createSchema, Machine } from "..";
 import { Type } from "../extras";
 
 Machine({
   initial: "a",
+  schema: {
+    events: createSchema<
+      | { type: "FOO", x: number }
+      | { type: "BAR" }
+    >()
+  },
   states: {
     a: {
       on: {
         FOO: "b.b1",
-        BAR: "c"
+        BAR: "c",
+        // @ts-expect-error
+        BAZ: "a"
       },
     },
     b: {
@@ -18,11 +26,25 @@ Machine({
       },
       entry: (_, event) => {
         Type.tests([
-          Type.areEqual<typeof event, { type: "FOO" }>()
+          Type.areEqual<typeof event, { type: "FOO", x: number }>()
         ])
       }
     },
     c: {}
+  }
+})
+
+
+Machine({
+  initial: "a",
+  schema: {
+    // @ts-expect-error
+    events: createSchema<
+      | { noType: "" }
+    >()
+  },
+  states: {
+    a: { }
   }
 })
 

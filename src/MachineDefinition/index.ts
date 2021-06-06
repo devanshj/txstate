@@ -9,7 +9,18 @@ namespace MachineDefinition {
         Definition, [],
         Precomputed.Of<Definition>
       >
+    & { schema?:
+          { events?: 
+              O.Get<Definition, ["schema", "events"]> extends { type: string }
+                ? O.Get<Definition, ["schema", "events"]>
+                : `Error: The type you provided does not extends { type: string }`
+          }
+      }
     & { context?: "TODO" };
+
+  export type Desugar<D> =
+    & StateNode.Desugar<D, "">
+    & { [K in U.Extract<keyof D, "schema" | "context">]: D[K] }
 
   export namespace Precomputed {
     export type Get<
@@ -26,7 +37,7 @@ namespace MachineDefinition {
       { "ReferencePathString.OfId": ReferencePathString.Unresolved.OfIdWithRoot<Definition>
       , "ReferencePathString": ReferencePathString.WithRoot<Definition>
       , "IdMap": IdMap.WithRoot<Definition>
-      , "DesugaredDefinition": StateNode.Desugar<Definition, "">
+      , "DesugaredDefinition": MachineDefinition.Desugar<Definition>
       }
   }
 
@@ -39,7 +50,8 @@ namespace MachineDefinition {
       Self = O.Get<Definition, Path>,
       States = O.Get<Self, "states">,
       Type = O.Get<Self, "type", "compound">,
-      On = O.Get<Self, "on">
+      On = O.Get<Self, "on">,
+      EventIdentifierSpec = O.Get<Definition, ["schema", "events", "type"], never>
     > =
       & { type?:
             | "compound"
@@ -68,15 +80,18 @@ namespace MachineDefinition {
         )
       & { id?: Id.Of<Definition, L.Push<Path, "id">, Precomputed>
         , on?: 
-            { [EventIdentifier in keyof On]:
+            { [EventIdentifier in U.Extract<EventIdentifierSpec, A.String> | keyof On]:
                 EventIdentifier extends A.String
-                  ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed>
+                  ? [EventIdentifierSpec] extends [never]
+                      ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed> :
+                    EventIdentifier extends EventIdentifierSpec
+                      ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed> :
+                    `Error: ${EventIdentifier} is not included in schema.events`
                   : "Error: only string identifier allowed"
             }
         , always?: Always.Of<Definition, L.Push<Path, "always">, Precomputed>
         , entry?: Entry.Of<Definition, L.Push<Path, "entry">, Precomputed>
         }
-
 
     export type Desugar<N, R> =
       { type: O.Get<N, "type",

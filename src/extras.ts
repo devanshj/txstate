@@ -222,6 +222,7 @@ export namespace U {
   export type IsUnit<T> = [U.Popped<T>] extends [never] ? B.True : B.False
   export type Popped<T> = U.Exclude<T, U.Pop<T>>
   export type Exclude<A, B> = A extends B ? never : A;
+  export type Extract<A, B> = A extends B ? A : never;
 
   export type Pop<T> =
     ToIntersection<T extends unknown ? (x: T) => void : never> extends (x: infer P) => void ? P : never
