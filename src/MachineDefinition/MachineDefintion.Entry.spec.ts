@@ -17,6 +17,9 @@ Machine({
         // @ts-expect-error
         BAZ: "a"
       },
+      always: {
+        target: "b.b2"
+      }
     },
     b: {
       initial: "b1",
@@ -26,7 +29,10 @@ Machine({
       },
       entry: (_, event) => {
         Type.tests([
-          Type.areEqual<typeof event, { type: "FOO", x: number }>()
+          Type.areEqual<typeof event,
+            | { type: "FOO", x: number }
+            | { type: "xstate.init" }
+          >()
         ])
       }
     },
@@ -106,7 +112,7 @@ Machine({
       _: null,
       entry: (_, event) => {
         Type.tests([
-          Type.areEqual<typeof event, { type: "X" }>()
+          Type.areEqual<typeof event, { type: "X" } | { type: "xstate.init" }>()
         ])
       }
     },

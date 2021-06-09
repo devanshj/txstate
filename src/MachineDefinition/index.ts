@@ -29,6 +29,7 @@ namespace MachineDefinition {
         | "ReferencePathString"
         | "IdMap"
         | "DesugaredDefinition"
+        | "InitialConfigurationState"
     > =
       O.Get<Precomputed, Key>
 
@@ -37,7 +38,11 @@ namespace MachineDefinition {
       , "ReferencePathString": ReferencePathString.WithRoot<Definition>
       , "IdMap": IdMap.WithRoot<Definition>
       , "DesugaredDefinition": MachineDefinition.Desugar<Definition>
-      }
+      } extends infer P
+        ? & P
+          & { "InitialConfigurationState": MachineDefinition.InitialConfigurationState.Of<Definition, P>
+            }
+        : never
   }
 
   export namespace StateNode {
@@ -427,7 +432,8 @@ namespace MachineDefinition {
       On = O.Get<Root, "on">,
       Always = O.Get<Root, "always">,
       States = O.Get<Root, "states">,
-      EventSchema = O.Get<D, ["schema", "events"]>
+      EventSchema = O.Get<D, ["schema", "events"]>,
+      InitialConfigurationState = Precomputed.Get<P, "InitialConfigurationState">
     > =
       | { [E in keyof On]: 
           O.Get<On, [E, number]> extends infer T
@@ -472,7 +478,43 @@ namespace MachineDefinition {
               ReferencePathString.Append<RootReferencePathString, C>
             >
         }[keyof States]
+      | ( StateNodeReferencePathString extends InitialConfigurationState
+            ? { type: "xstate.init" }
+            : never
+        )
   }
+
+  export namespace InitialConfigurationState {
+    export type Of<D, P> =  FromRoot<D, P, "">;
+
+    type FromRoot<D, P, R,
+      Node = ReferencePathString.ToNode<R, D>,
+      Initial = O.Get<Node, "initial">,
+      ChildState = keyof O.Get<Node, "states">,
+      Always = Transition.Desugar<O.Get<Node, "always">, R>
+    > =
+      | ( Initial extends A.String
+          ? | ReferencePathString.Append<R, Initial>
+            | FromRoot<D, P, ReferencePathString.Append<R, Initial>>
+          : [ChildState] extends [never] ? never :
+            ChildState extends any
+              ? | ReferencePathString.Append<R, ChildState>
+                | FromRoot<D, P, ReferencePathString.Append<R, ChildState>>
+              : never
+        )
+      | { [I in keyof Always]:
+          O.Get<ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
+            D, P, O.Get<Always[I], "target">, R
+          >, number> extends infer T
+            ? [T] extends [never] ? never :
+              T extends any
+                ? FromRoot<D, P, T>
+                : never
+            : never
+        }[keyof Always]
+  }
+
+  
 
 
   export namespace Actions {
