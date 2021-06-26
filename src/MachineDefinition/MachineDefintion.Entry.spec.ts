@@ -40,7 +40,6 @@ Machine({
   }
 })
 
-
 Machine({
   initial: "a",
   schema: {
@@ -83,11 +82,11 @@ Machine({
   on: {
     X: { target: ".a" }
   },
-  entry: (_, event) => {
+  entry: [(_, event) => {
     Type.tests([
       Type.areEqual<typeof event, never>()
     ])
-  }
+  }, "a"]
 })
 
 Machine({
@@ -131,3 +130,56 @@ Machine({
     ]
   },
 })
+
+
+let testA = Machine({
+  initial: "a",
+  states: {
+    a: {
+      on: { FOO: "b" },
+      entry: [(_, event) => {
+        Type.tests([
+          Type.areEqual<typeof event, { type: "xstate.init" }>()
+        ])
+      }]
+    },
+    b: {
+      entry: (_, event) => {
+        Type.tests([
+          Type.areEqual<typeof event, { type: "FOO" }>()
+        ])
+      }
+    },
+    c: {
+      entry: "a"
+    }
+  },
+  entry: [(_, event) => {
+    Type.tests([
+      Type.areEqual<typeof event, { type: "FOO" }>()
+    ])
+  }, "a"]
+})
+testA.config.entry[0]({} as any, {
+  type: "FOO"
+})
+testA.config.entry[0]({} as any, {
+  // @ts-expect-error
+  type: "BAR"
+})
+
+testA.config.states.a.entry[0]({} as any, {
+  type: "xstate.init"
+})
+testA.config.states.a.entry[0]({} as any, {
+  // @ts-expect-error
+  type: "BAR"
+})
+
+testA.config.entry[1] === "a"
+// @ts-expect-error
+testA.config.entry[1] === "b"
+
+testA.config.states.c.entry === "a";
+// @ts-expect-error
+testA.config.states.c.entry === "b";

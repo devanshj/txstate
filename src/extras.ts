@@ -1,17 +1,16 @@
 export namespace O {
   export type Assert<T> = A.Cast<T, A.Object>;
   
-  type _Get<O, P, F> =
-    P extends [] ?
-      O extends undefined ? F : O :
-    P extends [infer K1, ...infer Kr] ?
-      K1 extends keyof O ? _Get<O[K1], Kr, F> : F :
-    never 
-
   export type Get<O, P, F = undefined> =
-    (P extends any[] ? _Get<O, P, F> : _Get<O, [P], F>) extends infer X
-      ? A.Cast<X, any>
-      : never
+    P extends any[]
+      ? P extends [] ?
+          O extends undefined ? F : O :
+        P extends [infer K1, ...infer Kr] ?
+          K1 extends keyof O
+            ? Get<O[K1], Kr, F> extends infer X ? A.Cast<X, any> : never
+            : F :
+        never 
+      : Get<O, [P], F>
 
   export type KeyWithValue<O, V> =
     { [K in keyof O]: O[K] extends V ? K : never }[keyof O]
@@ -145,43 +144,20 @@ export namespace L {
     }>
 
   export type IsLiteral<T> = B.Not<A.AreEqual<O.Get<T, "length">, number>>
-
-  export type ConcatS<A, B> = 
-    O.Get<B, "length"> extends 0 ? A :
-    B extends [infer H, ...infer T]
-      ? L.Includes<A, H> extends B.True
-          ? ConcatS<A, T>
-          : ConcatS<[...L.Assert<A>, H], T>
-      : never
-
-  Type.tests([
-    Type.areEqual<L.ConcatS<["a", "b", "c"], ["d", "a", "e"]>, ["a", "b", "c", "d", "e"]>(X => {})
-  ])
-
-  export type AnyContaining<X> =
-    | [...any[], X]
-    | [...any[], X, any]
-    | [...any[], X, any, any]
-    | [...any[], X, any, any, any]
-    | [...any[], X, any, any, any, any]
-    | [...any[], X, any, any, any, any, any]
 }
 
 export namespace A {
   export type Cast<T, U> = T extends U ? T : U;
   export type Function = (...args: any[]) => any;
   export type Tuple<T = any> = T[] | [T];
-  export type StringTuple = A.Tuple<A.String>;
-  export type ReadonlyTuple<T> = readonly T[] | readonly [T]
-  export type TupleOrUnit<T = any> = T | Tuple<T>;
+  export type TupleOrUnit<T> = T | [T] | T[];
   export type Object = object;
   export type String = string;
   export type Number = number;
 
   export type InferNarrowest<T> =
     T extends any
-      ? ( T extends A.Tuple ? readonly [...L.Assert<T>] :
-          T extends A.Function ? T :
+      ? ( T extends A.Function ? T :
           T extends A.Object ? InferNarrowestObject<T> :
           T
         )
@@ -253,6 +229,7 @@ export namespace F {
 export namespace S {
   export type String = string;
   export type Assert<T> = A.Cast<T, A.String>
+  export type InferNarrowest<T> = T extends string ? T : never
   
   export type DoesStartWith<S, X> =
     S extends X ? B.True :

@@ -2,7 +2,7 @@ import { O, A, U, L, B, Type, S, F } from "../extras";
 import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
-namespace MachineDefinition {
+namespace MachineDefinition { 
   export type Of<Definition> =
     & StateNode.Of<
         Definition, [],
@@ -15,7 +15,12 @@ namespace MachineDefinition {
                 : `Error: The type you provided does not extends { type: string }`
           }
       }
-    & { context?: "TODO" };
+    & { context?: "TODO" }
+    & { [_ in $$Self]?: Definition }
+
+ 
+  const $$Self = Symbol("$$Self")
+  export type $$Self = typeof $$Self;
 
   export type Desugar<D> =
     & StateNode.Desugar<D, "">
@@ -158,9 +163,9 @@ namespace MachineDefinition {
             ( Self extends A.Object[] ? never :
               | undefined
               | TargetPathString
-              | ( Self extends A.ReadonlyTuple<TargetPathString>
+              | ( Self extends A.Tuple<TargetPathString>
                     ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
-                    : A.ReadonlyTuple<TargetPathString>
+                    : A.Tuple<TargetPathString>
                 )
             )
             | ( Self extends A.Object[]
@@ -169,9 +174,9 @@ namespace MachineDefinition {
                         { target?:
                             | undefined
                             | TargetPathString
-                            | ( O.Get<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                            | ( O.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
                                   ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
-                                  : A.ReadonlyTuple<TargetPathString>
+                                  : A.Tuple<TargetPathString>
                               )
                         , internal?: boolean
                         }
@@ -180,7 +185,7 @@ namespace MachineDefinition {
                       target:
                         | undefined
                         | TargetPathString
-                        | A.ReadonlyTuple<TargetPathString>
+                        | A.Tuple<TargetPathString>
                       , internal?: boolean
                     }[]
               )
@@ -255,24 +260,24 @@ namespace MachineDefinition {
             )
       > =
         ( Self extends { target: any } ? never :
-          | ( Self extends A.ReadonlyTuple<A.Object>
+          | ( Self extends A.Tuple<A.Object>
                 ? L.ReadonlyOf<L.Assert<{
                     [K in keyof Self]:
                       { target?:
                           | undefined
                           | TargetPathString
-                          | ( O.Get<Self[K], "target"> extends A.ReadonlyTuple<TargetPathString>
+                          | ( O.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
                                 ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
-                                : A.ReadonlyTuple<TargetPathString>
+                                : A.Tuple<TargetPathString>
                             )
                       , internal?: boolean
                       }
                   }>>
-                : A.ReadonlyTuple<{
+                : A.Tuple<{
                     target:
                       | undefined
                       | TargetPathString
-                      | A.ReadonlyTuple<TargetPathString>
+                      | A.Tuple<TargetPathString>
                     , internal?: boolean
                   }>
             )
@@ -280,9 +285,9 @@ namespace MachineDefinition {
         | { target?:
             | undefined
             | TargetPathString
-            | ( Self extends { target: A.ReadonlyTuple<TargetPathString> }
+            | ( Self extends { target: A.Tuple<TargetPathString> }
                   ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
-                  : A.ReadonlyTuple<TargetPathString>
+                  : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
           };
@@ -414,15 +419,58 @@ namespace MachineDefinition {
       Path,
       Precomputed,
       Self = O.Get<Definition, Path>,
-      NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>
+      NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
     > =
-      ( context: "TODO"
-      , event: EntryEventForStateNode<
-          Precomputed.Get<Precomputed, "DesugaredDefinition">,
-          Precomputed,
-          NodeReferencePathString
-        >
-      ) => void
+      | [ | S.InferNarrowest<O.Get<Self, 0>>
+          | (( context: "TODO"
+            , event: EntryEventForStateNode<
+                Precomputed.Get<Precomputed, "DesugaredDefinition">,
+                Precomputed,
+                NodeReferencePathString
+              >
+            ) => void)
+        ]
+      | { [K in keyof Self]:
+          | S.InferNarrowest<Self[K]>
+          | (( context: "TODO"
+            , event: EntryEventForStateNode<
+                Precomputed.Get<Precomputed, "DesugaredDefinition">,
+                Precomputed,
+                NodeReferencePathString
+              >
+            ) => void)
+        }
+      | S.InferNarrowest<Self>
+      | (( context: "TODO"
+        , event: EntryEventForStateNode<
+            Precomputed.Get<Precomputed, "DesugaredDefinition">,
+            Precomputed,
+            NodeReferencePathString
+          >
+        ) => void)
+      /*L.ReadonlyOf<{ [K in keyof Self]:
+          Self[K] extends string
+            ? Self[K] extends string ? Self[K] : string :
+          Self[K] extends 
+            (( context: "TODO"
+            , event: EntryEventForStateNode<
+                Precomputed.Get<Precomputed, "DesugaredDefinition">,
+                Precomputed,
+                NodeReferencePathString
+              >
+            ) => void)
+              ? Self[K] :
+          | string
+          | (( context: "TODO"
+            , event: EntryEventForStateNode<
+                Precomputed.Get<Precomputed, "DesugaredDefinition">,
+                Precomputed,
+                NodeReferencePathString
+              >
+            ) => void)
+      }>*/
+    
+    
 
     type EntryEventForStateNode<D, P, StateNodeReferencePathString> =
       EntryEventForStateNodeWithRoot<D, P, StateNodeReferencePathString, "">
