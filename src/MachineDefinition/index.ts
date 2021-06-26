@@ -421,33 +421,16 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>,
       NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
     > =
-      | [ | S.InferNarrowest<A.Get<Self, 0>>
-          | (( context: "TODO"
-            , event: EntryEventForStateNode<
-                Precomputed.Get<Precomputed, "DesugaredDefinition">,
-                Precomputed,
-                NodeReferencePathString
-              >
-            ) => void)
-        ]
-      | { [K in keyof Self]:
-          | S.InferNarrowest<Self[K]>
-          | (( context: "TODO"
-            , event: EntryEventForStateNode<
-                Precomputed.Get<Precomputed, "DesugaredDefinition">,
-                Precomputed,
-                NodeReferencePathString
-              >
-            ) => void)
-        }
-      | S.InferNarrowest<Self>
-      | (( context: "TODO"
+      A.TupleOrUnitOfStringLiteralAnd<
+        (( context: "TODO"
         , event: EntryEventForStateNode<
             Precomputed.Get<Precomputed, "DesugaredDefinition">,
             Precomputed,
             NodeReferencePathString
           >
-        ) => void)
+        ) => void),
+        Self
+      >
 
     type EntryEventForStateNode<D, P, StateNodeReferencePathString> =
       EntryEventForStateNodeWithRoot<D, P, StateNodeReferencePathString, "">
