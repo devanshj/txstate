@@ -150,9 +150,8 @@ let testA = Machine({
         ])
       }
     },
-    c: {
-      entry: "a"
-    }
+    c: { entry: "a" },
+    d: { entry: [] }
   },
   entry: [(_, event) => {
     Type.tests([
