@@ -35,40 +35,6 @@ export namespace ReferencePathString {
     [C] extends [never] ? never :
     C extends any ? Append<A, C> : never
 
-  export type Children<A, D, C = Child<A, D>> =
-    [C] extends [never] ? [] : U.ToList<C>
-
-  export type Ancestor<A> =
-    [A] extends [never] ? never :
-    | Parent<A>
-    | Ancestor<Parent<A>>
-
-  Type.tests([
-    Type.areEqual<Ancestor<"a.b.c">, "" | "a" | "a.b">()
-  ])
-
-  export type ProperAncestors<A, B = never> =
-    [A] extends [never] ? [] :
-    [Parent<A>] extends [never] ? [] :
-    [Parent<A>] extends [B] ? [] :
-    [Parent<A>, ...ProperAncestors<Parent<A>, B>]
-
-  Type.tests([
-    Type.areEqual<ProperAncestors<"a.b.c">, ["a.b", "a", ""]>(),
-    Type.areEqual<ProperAncestors<"a.b.c", "a">, ["a.b"]>()
-  ])
-
-  export type ProperAncestorsReversed<A, B = never> =
-    [A] extends [never] ? [] :
-    [Parent<A>] extends [never] ? [] :
-    [Parent<A>] extends [B] ? [] :
-    [...ProperAncestorsReversed<Parent<A>, B>, Parent<A>]
-
-  Type.tests([
-    Type.areEqual<ProperAncestorsReversed<"a.b.c">, ["", "a", "a.b"]>(),
-    Type.areEqual<ProperAncestorsReversed<"a.b.c", "a">, ["a.b"]>()
-  ])
-
   export type FromDefinitionPath<Path> =
     A.Get<Path, "length"> extends 0 ? "" :
     S.Replace<L.Join<Path, ".">, "states.", "">
@@ -210,15 +176,15 @@ export namespace ReferencePathString {
         StateReferencePathString extends "." ? never :
         StateReferencePathString
       )
-    | ( N.IsGreaterThan<Depth, 0> extends true
-          ? { [S in keyof States]:
+    | ( Depth extends 0
+          ? never
+          : { [S in keyof States]:
               WithRoot<
                 States[S],
                 ReferencePathString.Append<StateReferencePathString, S>,
                 N.Decrement<Depth>
               >
             }[keyof States]
-          : never
       )
 
   Type.tests([

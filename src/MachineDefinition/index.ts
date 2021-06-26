@@ -169,7 +169,7 @@ namespace MachineDefinition {
                 )
             )
             | ( Self extends A.Object[]
-                  ? L.ReadonlyOf<L.Assert<{
+                  ? {
                       [K in keyof Self]:
                         { target?:
                             | undefined
@@ -180,7 +180,7 @@ namespace MachineDefinition {
                               )
                         , internal?: boolean
                         }
-                    }>>
+                    }
                   : {
                       target:
                         | undefined
@@ -261,7 +261,7 @@ namespace MachineDefinition {
       > =
         ( Self extends { target: any } ? never :
           | ( Self extends A.Tuple<A.Object>
-                ? L.ReadonlyOf<L.Assert<{
+                ? {
                     [K in keyof Self]:
                       { target?:
                           | undefined
@@ -272,7 +272,7 @@ namespace MachineDefinition {
                             )
                       , internal?: boolean
                       }
-                  }>>
+                  }
                 : A.Tuple<{
                     target:
                       | undefined
@@ -329,7 +329,7 @@ namespace MachineDefinition {
               ReferencePathString.RegionRoot<SelfResolved[I], Definition>
           }
       > =
-        L.ReadonlyOf<{ [I in keyof Self]:
+        { [I in keyof Self]:
           [ | ({ [J in keyof Self]:
                   J extends I ? never : 
                   ReferencePathString.IsDescendant<A.Get<SelfResolved, J>, A.Get<SelfResolved, I>> extends B.True
@@ -367,7 +367,7 @@ namespace MachineDefinition {
                   : RegionRootError
                 : AncestryError
             : never
-        }>
+        }
     }
 
   export namespace IdMap {
@@ -448,29 +448,6 @@ namespace MachineDefinition {
             NodeReferencePathString
           >
         ) => void)
-      /*L.ReadonlyOf<{ [K in keyof Self]:
-          Self[K] extends string
-            ? Self[K] extends string ? Self[K] : string :
-          Self[K] extends 
-            (( context: "TODO"
-            , event: EntryEventForStateNode<
-                Precomputed.Get<Precomputed, "DesugaredDefinition">,
-                Precomputed,
-                NodeReferencePathString
-              >
-            ) => void)
-              ? Self[K] :
-          | string
-          | (( context: "TODO"
-            , event: EntryEventForStateNode<
-                Precomputed.Get<Precomputed, "DesugaredDefinition">,
-                Precomputed,
-                NodeReferencePathString
-              >
-            ) => void)
-      }>*/
-    
-    
 
     type EntryEventForStateNode<D, P, StateNodeReferencePathString> =
       EntryEventForStateNodeWithRoot<D, P, StateNodeReferencePathString, "">
