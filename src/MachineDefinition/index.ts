@@ -164,7 +164,7 @@ namespace MachineDefinition {
               | undefined
               | TargetPathString
               | ( Self extends A.Tuple<TargetPathString>
-                    ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
+                    ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
                     : A.Tuple<TargetPathString>
                 )
             )
@@ -175,7 +175,7 @@ namespace MachineDefinition {
                             | undefined
                             | TargetPathString
                             | ( O.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
-                                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
+                                  ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
                                   : A.Tuple<TargetPathString>
                               )
                         , internal?: boolean
@@ -194,7 +194,7 @@ namespace MachineDefinition {
             | undefined
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
+                  ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
@@ -267,7 +267,7 @@ namespace MachineDefinition {
                           | undefined
                           | TargetPathString
                           | ( O.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
-                                ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
+                                ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
                                 : A.Tuple<TargetPathString>
                             )
                       , internal?: boolean
@@ -286,14 +286,14 @@ namespace MachineDefinition {
             | undefined
             | TargetPathString
             | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? ParallelReferencePathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
+                  ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
                   : A.Tuple<TargetPathString>
               )
           , internal?: boolean // TODO: enforce false for external
           };
   }
 
-  export namespace ParallelReferencePathStrings {
+  export namespace ParallelTargetPathStrings {
 
       /*
       const regionRoot = node =>
