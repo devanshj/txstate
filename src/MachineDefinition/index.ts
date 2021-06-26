@@ -10,8 +10,8 @@ namespace MachineDefinition {
       >
     & { schema?:
           { events?: 
-              O.Get<Definition, ["schema", "events"]> extends { type: string }
-                ? O.Get<Definition, ["schema", "events"]>
+              A.Get<Definition, ["schema", "events"]> extends { type: string }
+                ? A.Get<Definition, ["schema", "events"]>
                 : `Error: The type you provided does not extends { type: string }`
           }
       }
@@ -36,7 +36,7 @@ namespace MachineDefinition {
         | "DesugaredDefinition"
         | "InitialConfigurationState"
     > =
-      O.Get<Precomputed, Key>
+      A.Get<Precomputed, Key>
 
     export type Of<Definition> =
       { "ReferencePathString.OfId": ReferencePathString.Unresolved.OfIdWithRoot<Definition>
@@ -56,11 +56,11 @@ namespace MachineDefinition {
       Path,
       Precomputed,
 
-      Self = O.Get<Definition, Path>,
-      States = O.Get<Self, "states">,
-      Type = O.Get<Self, "type", "compound">,
-      On = O.Get<Self, "on">,
-      EventIdentifierSpec = O.Get<Definition, ["schema", "events", "type"], never>
+      Self = A.Get<Definition, Path>,
+      States = A.Get<Self, "states">,
+      Type = A.Get<Self, "type", "compound">,
+      On = A.Get<Self, "on">,
+      EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>
     > =
       & { type?:
             | "compound"
@@ -103,32 +103,32 @@ namespace MachineDefinition {
         }
 
     export type Desugar<N, R> =
-      { type: O.Get<N, "type",
-          [keyof O.Get<N, "states", {}>] extends [never] ? "atomic" :
-          keyof O.Get<N, "initial"> extends undefined ? "parallel" :
+      { type: A.Get<N, "type",
+          [keyof A.Get<N, "states", {}>] extends [never] ? "atomic" :
+          keyof A.Get<N, "initial"> extends undefined ? "parallel" :
           "compound"
         >
       , initial:
-          O.Get<N, "initial"> extends infer Initial
+          A.Get<N, "initial"> extends infer Initial
             ? Initial extends undefined ? undefined : 
               Initial extends A.Object ? {
-                target: [ReferencePathString.Append<R, O.Get<Initial, "target">>],
-                actions: Actions.Desugar<O.Get<Initial, "actions">, ReferencePathString.Append<R, "initial.actions">>
+                target: [ReferencePathString.Append<R, A.Get<Initial, "target">>],
+                actions: Actions.Desugar<A.Get<Initial, "actions">, ReferencePathString.Append<R, "initial.actions">>
               } :
               { target: [ReferencePathString.Append<R, Initial>], actions: [] }
             : never
-      , states: O.Get<N, "states", {}> extends infer States
+      , states: A.Get<N, "states", {}> extends infer States
           ? { [S in keyof States]: Desugar<States[S], ReferencePathString.Append<R, S>> }
           : never
-      , id: O.Get<N, "id">
-      , on: O.Get<N, "on", {}> extends infer On
+      , id: A.Get<N, "id">
+      , on: A.Get<N, "on", {}> extends infer On
           ? { [K in keyof On]: Transition.Desugar<On[K], ReferencePathString.Append<R, `on.${S.Assert<K>}`>> }
           : never
-      , always: Transition.Desugar<O.Get<N, "always">, ReferencePathString.Append<R, "always">>
-      , entry: Actions.Desugar<O.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
-      , exit: Actions.Desugar<O.Get<N, "exit">, ReferencePathString.Append<R, "exit">>
-      , history: O.Get<N, "type"> extends "history" ? O.Get<N, "history", "shallow"> : undefined
-      , target: O.Get<N, "target">
+      , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
+      , entry: Actions.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
+      , exit: Actions.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">>
+      , history: A.Get<N, "type"> extends "history" ? A.Get<N, "history", "shallow"> : undefined
+      , target: A.Get<N, "target">
       }
   }
 
@@ -139,11 +139,11 @@ namespace MachineDefinition {
         Path,
         Precomputed,
 
-        Self = O.Get<Definition, Path>,
+        Self = A.Get<Definition, Path>,
         StateNodePath = L.Popped<L.Popped<Path>>,
-        IsRoot = O.Get<StateNodePath, "length"> extends 0 ? true : false,
-        StateNode = O.Get<Definition, StateNodePath>,
-        SiblingIdentifier = IsRoot extends true ? never : keyof O.Get<Definition, L.Popped<StateNodePath>>,
+        IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
+        StateNode = A.Get<Definition, StateNodePath>,
+        SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
         TargetPathString =
           | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
           | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
@@ -152,7 +152,7 @@ namespace MachineDefinition {
                 ? never
                 : SiblingIdentifier extends any
                     ? ReferencePathString.WithRoot<
-                        O.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
+                        A.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
                         SiblingIdentifier,
                         2
                       > extends infer X ? S.Assert<X> : never
@@ -174,7 +174,7 @@ namespace MachineDefinition {
                         { target?:
                             | undefined
                             | TargetPathString
-                            | ( O.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
+                            | ( A.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
                                   ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
                                   : A.Tuple<TargetPathString>
                               )
@@ -210,19 +210,19 @@ namespace MachineDefinition {
       ) extends infer Ts
         ? { [K in keyof Ts]:
               { target:
-                  O.Get<Ts[K], "target"> extends infer T
+                  A.Get<Ts[K], "target"> extends infer T
                     ? T extends A.Tuple ? T : [T]
                     : never
-              , internal: O.Get<Ts[K], "internal">
-              , guard: O.Get<Ts[K], "guard", () => true>
-              , actions: Actions.Desugar<O.Get<Ts[K], "actions">, R>
+              , internal: A.Get<Ts[K], "internal">
+              , guard: A.Get<Ts[K], "guard", () => true>
+              , actions: Actions.Desugar<A.Get<Ts[K], "actions">, R>
               , __referencePath: ReferencePathString.Append<R, K>
               } extends infer Target
                 ? O.Update<Target, {
-                    internal: L.Every<{ [I in keyof O.Get<Target, "target">]: 
-                      O.Get<Target, "target">[I] extends infer T
-                        ? S.DoesStartWith<T, "."> extends true ? O.Get<Target, "internal", true> :
-                          T extends undefined ? O.Get<Target, "internal", true> :
+                    internal: L.Every<{ [I in keyof A.Get<Target, "target">]: 
+                      A.Get<Target, "target">[I] extends infer T
+                        ? S.DoesStartWith<T, "."> extends true ? A.Get<Target, "internal", true> :
+                          T extends undefined ? A.Get<Target, "internal", true> :
                           false
                         : never
                     }>
@@ -239,11 +239,11 @@ namespace MachineDefinition {
         Path,
         Precomputed,
         
-        Self = O.Get<Definition, Path>,
+        Self = A.Get<Definition, Path>,
         StateNodePath = L.Popped<Path>, // TODO: only diff, try to reuse Transition.Of
-        IsRoot = O.Get<StateNodePath, "length"> extends 0 ? true : false,
-        StateNode = O.Get<Definition, StateNodePath>,
-        SiblingIdentifier = IsRoot extends true ? never : keyof O.Get<Definition, L.Popped<StateNodePath>>,
+        IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
+        StateNode = A.Get<Definition, StateNodePath>,
+        SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
         TargetPathString =
           | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
           | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
@@ -252,7 +252,7 @@ namespace MachineDefinition {
                 ? never
                 : SiblingIdentifier extends any
                     ? ReferencePathString.WithRoot<
-                        O.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
+                        A.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
                         SiblingIdentifier,
                         2
                       > extends infer X ? S.Assert<X> : never
@@ -266,7 +266,7 @@ namespace MachineDefinition {
                       { target?:
                           | undefined
                           | TargetPathString
-                          | ( O.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
+                          | ( A.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
                                 ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
                                 : A.Tuple<TargetPathString>
                             )
@@ -313,7 +313,7 @@ namespace MachineDefinition {
         Precomputed,
         StateNodePath,
 
-        Self = O.Get<Definition, Path>,
+        Self = A.Get<Definition, Path>,
         StateReferencePathString = ReferencePathString.FromDefinitionPath<StateNodePath>,
         SelfResolved =
           { [I in keyof Self]:
@@ -332,7 +332,7 @@ namespace MachineDefinition {
         L.ReadonlyOf<{ [I in keyof Self]:
           [ | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  ReferencePathString.IsDescendant<O.Get<SelfResolved, J>, O.Get<SelfResolved, I>> extends B.True
+                  ReferencePathString.IsDescendant<A.Get<SelfResolved, J>, A.Get<SelfResolved, I>> extends B.True
                     ? Self[J]
                     : never
               }[number & keyof Self] extends infer Ancestors
@@ -342,7 +342,7 @@ namespace MachineDefinition {
                 : never)
             | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  ReferencePathString.IsAncestor<S.Assert<O.Get<SelfResolved, J>>, S.Assert<O.Get<SelfResolved, I>>> extends B.True
+                  ReferencePathString.IsAncestor<S.Assert<A.Get<SelfResolved, J>>, S.Assert<A.Get<SelfResolved, I>>> extends B.True
                     ? Self[J]
                     : never
               }[number & keyof Self] extends infer Descendants
@@ -351,7 +351,7 @@ namespace MachineDefinition {
                     : `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}` : never)
           , { [J in keyof Self]:
                 J extends I ? never :
-                O.Get<RegionRootOf, I> extends O.Get<RegionRootOf, J> ? Self[J] :
+                A.Get<RegionRootOf, I> extends A.Get<RegionRootOf, J> ? Self[J] :
                 never
             }[number & keyof Self] extends infer NodesWithCommonRegionRoot
               ? [NodesWithCommonRegionRoot] extends [never]
@@ -378,8 +378,8 @@ namespace MachineDefinition {
       StateNode,
 
       PathString = "",
-      Id = O.Get<StateNode, "id">, 
-      States = O.Get<StateNode, "states", {}>
+      Id = A.Get<StateNode, "id">, 
+      States = A.Get<StateNode, "states", {}>
     > = 
       | ( Id extends undefined ? {} : { [_ in S.Assert<PathString>]: Id } )
       | { [S in keyof States]:
@@ -403,7 +403,7 @@ namespace MachineDefinition {
       Path,
       Precomputed,
 
-      Self = O.Get<Definition, Path>,
+      Self = A.Get<Definition, Path>,
       IdMap = Precomputed.Get<Precomputed, "IdMap">
     > =
       Self extends A.String
@@ -418,10 +418,10 @@ namespace MachineDefinition {
       Definition,
       Path,
       Precomputed,
-      Self = O.Get<Definition, Path>,
+      Self = A.Get<Definition, Path>,
       NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
     > =
-      | [ | S.InferNarrowest<O.Get<Self, 0>>
+      | [ | S.InferNarrowest<A.Get<Self, 0>>
           | (( context: "TODO"
             , event: EntryEventForStateNode<
                 Precomputed.Get<Precomputed, "DesugaredDefinition">,
@@ -477,22 +477,22 @@ namespace MachineDefinition {
   
     type EntryEventForStateNodeWithRoot<D, P, StateNodeReferencePathString, RootReferencePathString,
       Root = ReferencePathString.ToNode<RootReferencePathString, D>,
-      On = O.Get<Root, "on">,
-      Always = O.Get<Root, "always">,
-      States = O.Get<Root, "states">,
-      EventSchema = O.Get<D, ["schema", "events"]>,
+      On = A.Get<Root, "on">,
+      Always = A.Get<Root, "always">,
+      States = A.Get<Root, "states">,
+      EventSchema = A.Get<D, ["schema", "events"]>,
       InitialConfigurationState = Precomputed.Get<P, "InitialConfigurationState">
     > =
       | { [E in keyof On]: 
-          O.Get<On, [E, number]> extends infer T
+          A.Get<On, [E, number]> extends infer T
             ? [T] extends [never] ? never :
               T extends any
                 ? ( L.IncludesSubtype<
                       ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                        D, P, O.Get<T, "target">, RootReferencePathString
+                        D, P, A.Get<T, "target">, RootReferencePathString
                       >,
                       | StateNodeReferencePathString 
-                      | ( O.Get<T, "internal"> extends false
+                      | ( A.Get<T, "internal"> extends false
                             ? ReferencePathString.Child<StateNodeReferencePathString, D>
                             : never
                         )
@@ -504,14 +504,14 @@ namespace MachineDefinition {
                 : never
             : never
         }[keyof On]
-      | ( O.Get<Always, number> extends infer T
+      | ( A.Get<Always, number> extends infer T
             ? [T] extends [never] ? never :
               L.IncludesSubtype<
                 ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                  D, P, O.Get<T, "target">, RootReferencePathString
+                  D, P, A.Get<T, "target">, RootReferencePathString
                 >,
                 | StateNodeReferencePathString
-                | ( O.Get<T, "internal"> extends false
+                | ( A.Get<T, "internal"> extends false
                       ? ReferencePathString.Child<StateNodeReferencePathString, D>
                       : never
                   )
@@ -537,9 +537,9 @@ namespace MachineDefinition {
 
     type FromRoot<D, P, R,
       Node = ReferencePathString.ToNode<R, D>,
-      Initial = O.Get<Node, "initial">,
-      ChildState = keyof O.Get<Node, "states">,
-      Always = Transition.Desugar<O.Get<Node, "always">, R>
+      Initial = A.Get<Node, "initial">,
+      ChildState = keyof A.Get<Node, "states">,
+      Always = Transition.Desugar<A.Get<Node, "always">, R>
     > =
       | ( Initial extends A.String
           ? | ReferencePathString.Append<R, Initial>
@@ -551,8 +551,8 @@ namespace MachineDefinition {
               : never
         )
       | { [I in keyof Always]:
-          O.Get<ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-            D, P, O.Get<Always[I], "target">, R
+          A.Get<ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
+            D, P, A.Get<Always[I], "target">, R
           >, number> extends infer T
             ? [T] extends [never] ? never :
               T extends any

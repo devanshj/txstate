@@ -1,16 +1,5 @@
 export namespace O {
   export type Assert<T> = A.Cast<T, A.Object>;
-  
-  export type Get<O, P, F = undefined> =
-    P extends any[]
-      ? P extends [] ?
-          O extends undefined ? F : O :
-        P extends [infer K1, ...infer Kr] ?
-          K1 extends keyof O
-            ? Get<O[K1], Kr, F> extends infer X ? A.Cast<X, any> : never
-            : F :
-        never 
-      : Get<O, [P], F>
 
   export type KeyWithValue<O, V> =
     { [K in keyof O]: O[K] extends V ? K : never }[keyof O]
@@ -25,14 +14,14 @@ export namespace O {
     >
 
   export type Defaults<A, B> =
-    Update<A, { [K in keyof B]: O.Get<A, K, B[K]> }>
+    Update<A, { [K in keyof B]: A.Get<A, K, B[K]> }>
 
 
   export type FromEntries<A> =
     U.ToIntersection<
-      O.Get<{
+      A.Get<{
         [I in keyof A]:
-          { [_ in A.Cast<O.Get<A[I], 0>, keyof any>]: O.Get<A[I], 1> }
+          { [_ in A.Cast<A.Get<A[I], 0>, keyof any>]: A.Get<A[I], 1> }
       }, number>
     >
 
@@ -85,28 +74,28 @@ export namespace L {
 
   export type Includes<A, X> =
     A extends [] ? false :
-    X extends O.Get<A, number> ? true : false;
+    X extends A.Get<A, number> ? true : false;
 
   export type IncludesSubtype<A, X> =
     A extends [] ? false :
-    O.Get<A, number> extends X ? true : false;
+    A.Get<A, number> extends X ? true : false;
 
   export type DistributeThenFilter<L, X> =
     L extends any ? Filter<L, X> : never;
 
-  export type Subtract<A, B> = Filter<A, O.Get<B, number>>
+  export type Subtract<A, B> = Filter<A, A.Get<B, number>>
 
   export type HaveIntersection<A, B> =
-    [O.Get<A, number> & O.Get<B, number>] extends [never]
+    [A.Get<A, number> & A.Get<B, number>] extends [never]
       ? false
       : true
 
   export type Every<A> =
     A extends [] ? true :
-    A.AreEqual<U.ToIntersection<O.Get<A, number>>, true>
+    A.AreEqual<U.ToIntersection<A.Get<A, number>>, true>
 
   export type Some<A> =
-    B.Not<A.AreEqual<O.Get<A, number>, false>>
+    B.Not<A.AreEqual<A.Get<A, number>, false>>
 
   export type LiftElementUnion<A> = 
     A extends [] ? [] :
@@ -143,7 +132,7 @@ export namespace L {
         : A[I]
     }>
 
-  export type IsLiteral<T> = B.Not<A.AreEqual<O.Get<T, "length">, number>>
+  export type IsLiteral<T> = B.Not<A.AreEqual<A.Get<T, "length">, number>>
 }
 
 export namespace A {
@@ -154,6 +143,17 @@ export namespace A {
   export type Object = object;
   export type String = string;
   export type Number = number;
+
+  export type Get<T, P, F = undefined> =
+    P extends any[]
+      ? P extends [] ?
+          T extends undefined ? F : T :
+        P extends [infer K1, ...infer Kr] ?
+          K1 extends keyof T
+            ? Get<T[K1], Kr, F> extends infer X ? A.Cast<X, any> : never
+            : F :
+        never 
+      : Get<T, [P], F>
 
   export type InferNarrowest<T> =
     T extends any
@@ -245,8 +245,8 @@ export namespace S {
     S extends `${infer H}${S.Assert<D>}${infer T}` ? [H, ...Split<T, D>] : [S]
 
   export type Commas<S, L = U.ToList<S>> =
-    O.Get<L, "length"> extends 0 ? "" :
-    O.Get<L, "length"> extends 1 ? S.Assert<O.Get<L, 0>> :
+    A.Get<L, "length"> extends 0 ? "" :
+    A.Get<L, "length"> extends 1 ? S.Assert<A.Get<L, 0>> :
     `${L.Join<L.Popped<L>, ",">} & ${S.Assert<L.Pop<L>>}`
 
   export type Shifted<S> = S extends `${infer _}${infer T}` ? T : ""; 
@@ -257,7 +257,7 @@ export namespace S {
       : S;
 
   type TagKey<S> = U.Exclude<keyof S, keyof string>;
-  type Tag<S> = { [K in TagKey<S>]: O.Get<S, K> }
+  type Tag<S> = { [K in TagKey<S>]: A.Get<S, K> }
   export type Untag<S> = S extends (infer T) & Tag<S> ? T : never;
 
   Type.tests([
@@ -295,13 +295,13 @@ export namespace N {
 
   export type Increment<N> =
     IsNegative<N> extends false
-      ? O.Get<PositiveIntegers, N>
-      : O.Get<NegativeIntegersUnshiftedTwice, N.Negate<N>>
+      ? A.Get<PositiveIntegers, N>
+      : A.Get<NegativeIntegersUnshiftedTwice, N.Negate<N>>
 
   export type Decrement<N> =
     IsNegative<N> extends false
-      ? O.Get<PositiveIntegersUnshiftedTwice, N>
-      : O.Get<NegativeIntegers, N.Negate<N>>
+      ? A.Get<PositiveIntegersUnshiftedTwice, N>
+      : A.Get<NegativeIntegers, N.Negate<N>>
 
   export type Add<A, B> =
    B extends 0 ? A :

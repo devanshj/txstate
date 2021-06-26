@@ -1,4 +1,4 @@
-import { O, L, B, Type, S, U, N } from "./extras";
+import { A, O, L, B, Type, S, U, N } from "./extras";
 import MachineDefinition from "./MachineDefinition";
 
 export namespace ReferencePathString {
@@ -9,11 +9,11 @@ export namespace ReferencePathString {
 
     NodePath = ReferencePathString.ToDefinitionPath<ReferencePathString>,
     ParentNodePath = L.Popped<L.Popped<NodePath>>,
-    ParentNode = O.Get<RootNode, ParentNodePath>,
+    ParentNode = A.Get<RootNode, ParentNodePath>,
     ParentReferencePathString = ReferencePathString.FromDefinitionPath<ParentNodePath>
   > =
-    O.Get<ParentNode, "type", "compound"> extends "parallel" ? NodePath :
-    O.Get<ParentNodePath, "length"> extends 0 ? [] :
+    A.Get<ParentNode, "type", "compound"> extends "parallel" ? NodePath :
+    A.Get<ParentNodePath, "length"> extends 0 ? [] :
     RegionRoot<ParentReferencePathString, RootNode>
 
   /** is B descendant of A */
@@ -31,7 +31,7 @@ export namespace ReferencePathString {
     A extends "" ? never :
     L.Join<L.Popped<S.Split<A, ".">>, ".">
 
-  export type Child<A, D, S = ToNode<A, D>, C = keyof O.Get<S, "states">> =
+  export type Child<A, D, S = ToNode<A, D>, C = keyof A.Get<S, "states">> =
     [C] extends [never] ? never :
     C extends any ? Append<A, C> : never
 
@@ -70,7 +70,7 @@ export namespace ReferencePathString {
   ])
 
   export type FromDefinitionPath<Path> =
-    O.Get<Path, "length"> extends 0 ? "" :
+    A.Get<Path, "length"> extends 0 ? "" :
     S.Replace<L.Join<Path, ".">, "states.", "">
 
   Type.tests([
@@ -90,7 +90,7 @@ export namespace ReferencePathString {
   ])
 
   export type ToNode<ReferencePathString, Definition> =
-    O.Get<Definition, ToDefinitionPath<ReferencePathString>>
+    A.Get<Definition, ToDefinitionPath<ReferencePathString>>
 
   export namespace Tuple {
     export type MapToDefinitionPath<T> =
@@ -124,9 +124,9 @@ export namespace ReferencePathString {
 
       SiblingStateIdentifier =
         StateReferencePathString extends "" ? never :
-        keyof O.Get<ReferencePathString.ToNode<ParentStateReferencePathString, Definition>, "states">,
+        keyof A.Get<ReferencePathString.ToNode<ParentStateReferencePathString, Definition>, "states">,
       ChildStateIdentifier =
-        keyof O.Get<ReferencePathString.ToNode<StateReferencePathString, Definition>, "states">
+        keyof A.Get<ReferencePathString.ToNode<StateReferencePathString, Definition>, "states">
     > =
       S.Assert<
         // id
@@ -165,8 +165,8 @@ export namespace ReferencePathString {
       export type OfIdWithRoot<
         StateNode,
 
-        Id = O.Get<StateNode, "id">,
-        States = O.Get<StateNode, "states", {}>,
+        Id = A.Get<StateNode, "id">,
+        States = A.Get<StateNode, "states", {}>,
         IdPathString = `#${S.Assert<Id>}`
       > = 
         | ( Id extends undefined ? never :
@@ -204,7 +204,7 @@ export namespace ReferencePathString {
     StateReferencePathString = "",
     Depth = 20,
 
-    States = O.Get<StateNode, "states", {}>
+    States = A.Get<StateNode, "states", {}>
   > =
     | ( StateReferencePathString extends "" ? never :
         StateReferencePathString extends "." ? never :

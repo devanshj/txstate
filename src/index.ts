@@ -5,7 +5,7 @@ type Machine<
   _D, // in an machine with error this would be MachineDefinition.Of<D> otherwise it'll be D
   D =
     _D extends { [_ in MachineDefinition.$$Self]: unknown }
-      ? U.Exclude<O.Get<_D, MachineDefinition.$$Self>, undefined>
+      ? U.Exclude<A.Get<_D, MachineDefinition.$$Self>, undefined>
       : _D
 > =
   { config: D
