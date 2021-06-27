@@ -1,4 +1,4 @@
-import { O, A, U, L, B, Type, S, F } from "../extras";
+import { O, A, U, L, B, Type, S } from "../extras";
 import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
@@ -169,39 +169,52 @@ namespace MachineDefinition {
               | undefined
               | TargetPathString
               | ( Self extends A.Tuple<TargetPathString>
-                    ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
+                    ? ParallelTargetPathStrings.OfWithStateNodePath<
+                        Definition,
+                        Path,
+                        Precomputed,
+                        StateNodePath
+                      >
                     : A.Tuple<TargetPathString>
                 )
             )
             | ( Self extends A.Object[]
-                  ? {
-                      [K in keyof Self]:
+                  ? { [K in keyof Self]:
                         { target?:
                             | undefined
                             | TargetPathString
                             | ( A.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
-                                  ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
+                                  ? ParallelTargetPathStrings.OfWithStateNodePath<
+                                      Definition,
+                                      L.Concat<Path, [K, "target"]>,
+                                      Precomputed,
+                                      StateNodePath
+                                    >
                                   : A.Tuple<TargetPathString>
                               )
                         , internal?: boolean
                         }
                     }
-                  : {
-                      target:
+                  : { target:
                         | undefined
                         | TargetPathString
                         | A.Tuple<TargetPathString>
-                      , internal?: boolean
+                    , internal?: boolean
                     }[]
               )
         )
         | { target?:
-            | undefined
-            | TargetPathString
-            | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
-                  : A.Tuple<TargetPathString>
-              )
+              | undefined
+              | TargetPathString
+              | ( Self extends { target: A.Tuple<TargetPathString> }
+                    ? ParallelTargetPathStrings.OfWithStateNodePath<
+                        Definition,
+                        L.Push<Path, "target">,
+                        Precomputed,
+                        StateNodePath
+                      >
+                    : A.Tuple<TargetPathString>
+                )
           , internal?: boolean // TODO: enforce false for external
           };
 

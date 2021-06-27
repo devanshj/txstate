@@ -1,4 +1,4 @@
-import { A, O, U } from "./extras";
+import { A, U } from "./extras";
 import MachineDefinition from "./MachineDefinition";
 
 type Machine<
