@@ -156,6 +156,7 @@ namespace MachineDefinition {
         Path,
         Precomputed,
         StateNodePath,
+        
         Self = A.Get<Definition, Path>,
         IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
         StateNode = A.Get<Definition, StateNodePath>,
