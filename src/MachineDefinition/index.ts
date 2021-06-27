@@ -298,9 +298,13 @@ namespace MachineDefinition {
           }
       > =
         { [I in keyof Self]:
-          [ | ({ [J in keyof Self]:
+          [
+          | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  ReferencePathString.IsDescendant<A.Get<SelfResolved, J>, A.Get<SelfResolved, I>> extends B.True
+                  ReferencePathString.IsDescendant<
+                    A.Get<SelfResolved, J>,
+                    A.Get<SelfResolved, I>
+                  > extends B.True
                     ? Self[J]
                     : never
               }[number & keyof Self] extends infer Ancestors
@@ -308,15 +312,19 @@ namespace MachineDefinition {
                     ? never
                     : `Error: ${S.Assert<Self[I]>} is descendant of ${S.Commas<S.Assert<Ancestors>>}`
                 : never)
-            | ({ [J in keyof Self]:
+          | ({ [J in keyof Self]:
                   J extends I ? never : 
-                  ReferencePathString.IsAncestor<S.Assert<A.Get<SelfResolved, J>>, S.Assert<A.Get<SelfResolved, I>>> extends B.True
+                  ReferencePathString.IsAncestor<
+                    S.Assert<A.Get<SelfResolved, J>>,
+                    S.Assert<A.Get<SelfResolved, I>>
+                  > extends B.True
                     ? Self[J]
                     : never
               }[number & keyof Self] extends infer Descendants
                 ? [Descendants] extends [never]
                     ? never
-                    : `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}` : never)
+                    : `Error: ${S.Assert<Self[I]>} is ancestor of ${S.Commas<S.Assert<Descendants>>}`
+                : never)
           , { [J in keyof Self]:
                 J extends I ? never :
                 A.Get<RegionRootOf, I> extends A.Get<RegionRootOf, J> ? Self[J] :
