@@ -15,21 +15,31 @@ export namespace O {
 
 export namespace L {
   export type Assert<T> = A.Cast<T, A.Tuple>;
-  export type Concat<A, B> = [...L.Assert<A>, ...L.Assert<B>]
-  export type Push<A, X> = [...L.Assert<A>, X];
+  
+  export type Concat<A, B> =
+    [...L.Assert<A>, ...L.Assert<B>]
+  
+  export type Pushed<A, X> =
+    [...L.Assert<A>, X];
+
   export type Popped<A> =
     A extends [] ? [] :
     A extends [...infer Popped, any] ? Popped : never
+
   export type Pop<A> =
-    A extends [] ? undefined : 
+    A extends [] ? undefined :
     A extends [...L.Popped<A>, infer X] ? X : never;
+
   export type Shifted<A> =  
     A extends [] ? [] :
     A extends [any, ...infer Shifted] ? Shifted : never
+
   export type Shift<A> =
-    A extends [] ? undefined : 
+    A extends [] ? undefined :
     A extends [infer X, ...infer _] ? X : never;
-  export type Unshift<A, X> = [X, ...L.Assert<A>]
+
+  export type Unshift<A, X> =
+    [X, ...L.Assert<A>]
 
   export type ConcatAll<Ls> =
     Ls extends [] ? [] :

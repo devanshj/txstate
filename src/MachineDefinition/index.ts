@@ -87,7 +87,7 @@ namespace MachineDefinition {
             { initial?: undefined } :
           { initial: keyof States }
         )
-      & { id?: Id.Of<Definition, L.Push<Path, "id">, Precomputed>
+      & { id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , on?: 
             { [EventIdentifier in U.Extract<EventIdentifierSpec, A.String> | keyof On]:
                 EventIdentifier extends A.String
@@ -104,8 +104,8 @@ namespace MachineDefinition {
                       : `Error: ${EventIdentifier} is not included in schema.events`
                   : "Error: only string identifier allowed"
             }
-        , always?: Transition.Of<Definition, L.Push<Path, "always">, Precomputed, Path>
-        , entry?: Entry.Of<Definition, L.Push<Path, "entry">, Precomputed>
+        , always?: Transition.Of<Definition, L.Pushed<Path, "always">, Precomputed, Path>
+        , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
         }
 
     export type Desugar<N, R> =
@@ -164,11 +164,11 @@ namespace MachineDefinition {
             | ( Self extends A.Tuple
                 ? { [K in keyof Self]:
                       TargetWithExtras<
-                        Definition, L.Push<Path, K>, Precomputed, StateNodePath
+                        Definition, L.Pushed<Path, K>, Precomputed, StateNodePath
                       >
                   }
                 : A.Tuple<TargetWithExtras<
-                    Definition, L.Push<Path, number>, Precomputed, StateNodePath, true
+                    Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, true
                   >>
               )
           )
@@ -180,7 +180,7 @@ namespace MachineDefinition {
       StateNodePath,
       NoChecks = false,
     > =
-      { target?: Target<Definition, L.Push<Path, "target">, Precomputed, StateNodePath, NoChecks>
+      { target?: Target<Definition, L.Pushed<Path, "target">, Precomputed, StateNodePath, NoChecks>
       , internal?: boolean
       }
 
