@@ -100,6 +100,8 @@ export namespace A {
     (<T>() => T extends B ? 1 : 0) extends (<T>() => T extends A ? 1 : 0)
       ? true
       : false;
+
+  export type DoesExtend<A, B> = A extends B ? true : false;
 }
 
 export namespace U {

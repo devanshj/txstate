@@ -91,14 +91,20 @@ namespace MachineDefinition {
         , on?: 
             { [EventIdentifier in U.Extract<EventIdentifierSpec, A.String> | keyof On]:
                 EventIdentifier extends A.String
-                  ? [EventIdentifierSpec] extends [never]
-                      ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed> :
-                    EventIdentifier extends EventIdentifierSpec
-                      ? Transition.Of<Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed> :
-                    `Error: ${EventIdentifier} is not included in schema.events`
+                  ? L.Some<
+                    [ A.DoesExtend<[EventIdentifierSpec], [never]>
+                    , A.DoesExtend<EventIdentifier, EventIdentifierSpec>
+                    ]> extends true
+                      ? Transition.Of<
+                          Definition,
+                          L.Concat<Path, ["on", EventIdentifier]>,
+                          Precomputed,
+                          Path
+                        >
+                      : `Error: ${EventIdentifier} is not included in schema.events`
                   : "Error: only string identifier allowed"
             }
-        , always?: Always.Of<Definition, L.Push<Path, "always">, Precomputed>
+        , always?: Transition.Of<Definition, L.Push<Path, "always">, Precomputed, Path>
         , entry?: Entry.Of<Definition, L.Push<Path, "entry">, Precomputed>
         }
 
@@ -138,9 +144,8 @@ namespace MachineDefinition {
         Definition,
         Path,
         Precomputed,
-
+        StateNodePath,
         Self = A.Get<Definition, Path>,
-        StateNodePath = L.Popped<L.Popped<Path>>,
         IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
         StateNode = A.Get<Definition, StateNodePath>,
         SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
@@ -230,67 +235,6 @@ namespace MachineDefinition {
                 : false
           }
         : never
-  }
-
-  export namespace Always {
- 
-    export type Of<
-        Definition,
-        Path,
-        Precomputed,
-        
-        Self = A.Get<Definition, Path>,
-        StateNodePath = L.Popped<Path>, // TODO: only diff, try to reuse Transition.Of
-        IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
-        StateNode = A.Get<Definition, StateNodePath>,
-        SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
-        TargetPathString =
-          | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
-          | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
-          | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
-          | ( [SiblingIdentifier] extends [never]
-                ? never
-                : SiblingIdentifier extends any
-                    ? ReferencePathString.WithRoot<
-                        A.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
-                        SiblingIdentifier,
-                        2
-                      > extends infer X ? S.Assert<X> : never
-                    : never
-            )
-      > =
-        ( Self extends { target: any } ? never :
-          | ( Self extends A.Tuple<A.Object>
-                ? {
-                    [K in keyof Self]:
-                      { target?:
-                          | undefined
-                          | TargetPathString
-                          | ( A.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
-                                ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Concat<Path, [K, "target"]>, Precomputed, StateNodePath>
-                                : A.Tuple<TargetPathString>
-                            )
-                      , internal?: boolean
-                      }
-                  }
-                : A.Tuple<{
-                    target:
-                      | undefined
-                      | TargetPathString
-                      | A.Tuple<TargetPathString>
-                    , internal?: boolean
-                  }>
-            )
-        )
-        | { target?:
-            | undefined
-            | TargetPathString
-            | ( Self extends { target: A.Tuple<TargetPathString> }
-                  ? ParallelTargetPathStrings.OfWithStateNodePath<Definition, L.Push<Path, "target">, Precomputed, StateNodePath>
-                  : A.Tuple<TargetPathString>
-              )
-          , internal?: boolean // TODO: enforce false for external
-          };
   }
 
   export namespace ParallelTargetPathStrings {
