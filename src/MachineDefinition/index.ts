@@ -1,4 +1,5 @@
 import { O, A, U, L, B, Type, S } from "../extras";
+import Machine from "../Machine";
 import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
@@ -45,7 +46,7 @@ namespace MachineDefinition {
       , "DesugaredDefinition": MachineDefinition.Desugar<Definition>
       } extends infer P
         ? & P
-          & { "InitialConfigurationState": MachineDefinition.InitialConfigurationState.Of<Definition, P>
+          & { "InitialConfigurationState": Machine.InitialConfigurationState.Of<Definition, P>
             }
         : never
   }
@@ -95,7 +96,7 @@ namespace MachineDefinition {
                     [ A.DoesExtend<[EventIdentifierSpec], [never]>
                     , A.DoesExtend<EventIdentifier, EventIdentifierSpec>
                     ]> extends true
-                      ? Transition.Of<
+                      ? Transition.OfWithStateNodePath<
                           Definition,
                           L.Concat<Path, ["on", EventIdentifier]>,
                           Precomputed,
@@ -104,7 +105,7 @@ namespace MachineDefinition {
                       : `Error: ${EventIdentifier} is not included in schema.events`
                   : "Error: only string identifier allowed"
             }
-        , always?: Transition.Of<Definition, L.Pushed<Path, "always">, Precomputed, Path>
+        , always?: Transition.OfWithStateNodePath<Definition, L.Pushed<Path, "always">, Precomputed, Path>
         , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
         }
 
@@ -151,40 +152,47 @@ namespace MachineDefinition {
 
   export namespace Transition {
 
-    export type Of<
+    export type OfWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
       Self = A.Get<Definition, Path>
     > =
-      | TargetWithExtras<Definition, Path, Precomputed, StateNodePath>
+      | TargetAndExtrasWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
       | ( Self extends { target: any } ? never :
-          | Target<Definition, Path, Precomputed, StateNodePath>
+          | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
           | ( Self extends A.Tuple
               ? { [K in keyof Self]:
-                    TargetWithExtras<
+                    TargetAndExtrasWithStateNodePath<
                       Definition, L.Pushed<Path, K>, Precomputed, StateNodePath
                     >
                 }
-              : A.Tuple<TargetWithExtras<
+              : A.Tuple<TargetAndExtrasWithStateNodePath<
                   Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, true
                 >>
             )
         )
 
-    type TargetWithExtras<
+    type TargetAndExtrasWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
       NoChecks = false,
     > =
-      { target?: Target<Definition, L.Pushed<Path, "target">, Precomputed, StateNodePath, NoChecks>
+      { target?:
+          TargetWithStateNodePath<
+            Definition,
+            L.Pushed<Path, "target">,
+            Precomputed,
+            StateNodePath,
+            NoChecks
+          >
       , internal?: boolean
       }
 
-    type Target<
+    type TargetWithStateNodePath<
       Definition,
       Path,
       Precomputed,
@@ -396,112 +404,15 @@ namespace MachineDefinition {
     > =
       A.TupleOrUnitOfStringLiteralAnd<
         (( context: "TODO"
-        , event: EntryEventForStateNode<
-            Precomputed.Get<Precomputed, "DesugaredDefinition">,
+        , event: Machine.EntryEventForStateNode.Of<
+            Definition,
             Precomputed,
             NodeReferencePathString
           >
         ) => void),
         Self
       >
-
-    type EntryEventForStateNode<Definition, Precomputed, StateNodeReferencePathString> =
-      EntryEventForStateNodeWithRoot<Definition, Precomputed, StateNodeReferencePathString, "">
-  
-    type EntryEventForStateNodeWithRoot<
-      Definition,
-      Precomputed,
-      StateNodeReferencePathString,
-      RootReferencePathString,
-
-      Root = ReferencePathString.ToNode<RootReferencePathString, Definition>,
-      On = A.Get<Root, "on">,
-      Always = A.Get<Root, "always">,
-      States = A.Get<Root, "states">,
-      EventSchema = A.Get<Definition, ["schema", "events"]>,
-      InitialConfigurationState = Precomputed.Get<Precomputed, "InitialConfigurationState">
-    > =
-      | { [E in keyof On]: 
-          A.Get<On, [E, number]> extends infer T
-            ? [T] extends [never] ? never :
-              T extends any
-                ? ( L.IncludesSubtype<
-                      ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                        Definition, Precomputed, A.Get<T, "target">, RootReferencePathString
-                      >,
-                      | StateNodeReferencePathString 
-                      | ( A.Get<T, "internal"> extends false
-                            ? ReferencePathString.Child<StateNodeReferencePathString, Definition>
-                            : never
-                        )
-                    > extends true 
-                      ? EventSchema extends undefined ? { type: E } :
-                        U.Extract<EventSchema, { type: E }>
-                      : never
-                  )
-                : never
-            : never
-        }[keyof On]
-      | ( A.Get<Always, number> extends infer T
-            ? [T] extends [never] ? never :
-              L.IncludesSubtype<
-                ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                  Definition, Precomputed, A.Get<T, "target">, RootReferencePathString
-                >,
-                | StateNodeReferencePathString
-                | ( A.Get<T, "internal"> extends false
-                      ? ReferencePathString.Child<StateNodeReferencePathString, Definition>
-                      : never
-                  )
-              > extends true
-                ? EntryEventForStateNode<Definition, Precomputed, RootReferencePathString>
-                : never
-            : never
-        )
-      | { [C in keyof States]:
-            EntryEventForStateNodeWithRoot<
-              Definition, Precomputed, StateNodeReferencePathString,
-              ReferencePathString.Append<RootReferencePathString, C>
-            >
-        }[keyof States]
-      | ( StateNodeReferencePathString extends InitialConfigurationState
-            ? { type: "xstate.init" }
-            : never
-        )
   }
-
-  export namespace InitialConfigurationState {
-    export type Of<Definition, Precomputed> = FromRoot<Definition, Precomputed, "">;
-
-    type FromRoot<Definition, Precomputed, Root,
-      Node = ReferencePathString.ToNode<Root, Definition>,
-      Initial = A.Get<Node, "initial">,
-      ChildState = keyof A.Get<Node, "states">,
-      Always = Transition.Desugar<A.Get<Node, "always">, Root>
-    > =
-      | ( Initial extends A.String
-          ? | ReferencePathString.Append<Root, Initial>
-            | FromRoot<Definition, Precomputed, ReferencePathString.Append<Root, Initial>>
-          : [ChildState] extends [never] ? never :
-            ChildState extends any
-              ? | ReferencePathString.Append<Root, ChildState>
-                | FromRoot<Definition, Precomputed, ReferencePathString.Append<Root, ChildState>>
-              : never
-        )
-      | { [I in keyof Always]:
-          A.Get<ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-            Definition, Precomputed, A.Get<Always[I], "target">, Root
-          >, number> extends infer T
-            ? [T] extends [never] ? never :
-              T extends any
-                ? FromRoot<Definition, Precomputed, T>
-                : never
-            : never
-        }[keyof Always]
-  }
-
-  
-
 
   export namespace Actions {
     export type Desugar<A, R, DefaultActionType = "actions"> =
