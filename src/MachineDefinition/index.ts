@@ -69,15 +69,15 @@ namespace MachineDefinition {
             | "history"
             | "atomic"
         , states?:
-          Type extends "atomic"
-            ? "Error: atomic state node can't have states property"
-            : { [StateIdentifier in keyof States]:
-                  StateIdentifier extends A.String
-                    ? S.DoesContain<StateIdentifier, "."> extends B.True
-                        ? `Error: identifiers can't have '.' as it's use as a path delimiter`
-                        : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Precomputed>
-                    : `Error: only string identifiers allowed`
-              }
+            Type extends "atomic"
+              ? "Error: atomic state node can't have states property"
+              : { [StateIdentifier in keyof States]:
+                    StateIdentifier extends A.String
+                      ? S.DoesContain<StateIdentifier, "."> extends B.True
+                          ? `Error: identifiers can't have '.' as it's use as a path delimiter`
+                          : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Precomputed>
+                      : `Error: only string identifiers allowed`
+                }
         }
       & ( Type extends "atomic" ?
             { initial?: "Error: atomic state node can't have initial property" } :
@@ -117,18 +117,29 @@ namespace MachineDefinition {
       , initial:
           A.Get<N, "initial"> extends infer Initial
             ? Initial extends undefined ? undefined : 
-              Initial extends A.Object ? {
-                target: [ReferencePathString.Append<R, A.Get<Initial, "target">>],
-                actions: Actions.Desugar<A.Get<Initial, "actions">, ReferencePathString.Append<R, "initial.actions">>
-              } :
-              { target: [ReferencePathString.Append<R, Initial>], actions: [] }
+              Initial extends A.Object ?
+                { target: [ReferencePathString.Append<R, A.Get<Initial, "target">>]
+                , actions:
+                    Actions.Desugar<
+                      A.Get<Initial, "actions">,
+                      ReferencePathString.Append<R, "initial.actions">
+                    >
+                } :
+              { target: [ReferencePathString.Append<R, Initial>]
+              , actions: []
+              }
             : never
       , states: A.Get<N, "states", {}> extends infer States
           ? { [S in keyof States]: Desugar<States[S], ReferencePathString.Append<R, S>> }
           : never
       , id: A.Get<N, "id">
       , on: A.Get<N, "on", {}> extends infer On
-          ? { [K in keyof On]: Transition.Desugar<On[K], ReferencePathString.Append<R, `on.${S.Assert<K>}`>> }
+          ? { [K in keyof On]:
+                Transition.Desugar<
+                  On[K],
+                  ReferencePathString.Append<R, `on.${S.Assert<K>}`>
+                >
+            }
           : never
       , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
       , entry: Actions.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
@@ -215,7 +226,7 @@ namespace MachineDefinition {
                       >
                     : A.Tuple<TargetPathString>
                 )
-          , internal?: boolean // TODO: enforce false for external
+          , internal?: boolean
           };
 
 
@@ -258,7 +269,7 @@ namespace MachineDefinition {
         node.parent.type === "parallel" ? node :
         regionRoot(node.parent)
   
-      const isMultipleTargetValid = targets =>
+      const isParallelTargetValid = targets =>
         targets.some(i => target.some(j => isAncestor(i, j))) ? false :
         (roots => roots.length !== deduplicated(roots).length)(targets.map(regionRoot)) ? false :
         true
