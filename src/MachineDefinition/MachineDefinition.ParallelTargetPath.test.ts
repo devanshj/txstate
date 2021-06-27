@@ -22,42 +22,84 @@ Machine({
         disabled: {},
         enabled: {}
       },
-      // @ts-expect-error
-      always: { target: ["mode", "#lol"] }
+      always: { target: [
+        // @ts-expect-error
+        "mode",
+        // @ts-expect-error
+        "#lol"
+      ] }
     }
   },
   always: [
-    // @ts-expect-error
-    { target: [".mode", "#lol"] },
-    // @ts-expect-error
-    { target: ["#lol", "#xyz"] },
+    { target: [
+      // @ts-expect-error
+      ".mode",
+      // @ts-expect-error
+      "#lol"
+    ] },
+    { target: [
+      // @ts-expect-error
+      "#lol",
+      // @ts-expect-error
+      "#xyz"
+    ] },
     { target: [".mode.active", ".status.enabled"] },
-    // @ts-expect-error
-    { target: ["foobar"] }
+    { target: [
+      // @ts-expect-error
+      "foobar"
+    ] }
   ],
   on: {
-    // @ts-expect-error
-    DEACTIVATE: [".mode", "#lol"],
-    // @ts-expect-error
-    A: { target: [".mode", "#lol"] },
-    // @ts-expect-error
-    Z: ["#lol", "#xyz"],
-    // @ts-expect-error
-    Y: ["foobar"],
+    DEACTIVATE: [
+      // @ts-expect-error
+      ".mode",
+      // @ts-expect-error
+      "#lol"
+    ],
+    A: { target: [
+      // @ts-expect-error
+      ".mode",
+      // @ts-expect-error
+      "#lol"
+    ] },
+    Z: [
+      // @ts-expect-error
+      "#lol",
+      // @ts-expect-error
+      "#xyz"
+    ],
+    Y: [
+      // @ts-expect-error
+      "foobar"
+    ],
     ACTIVATE: [".mode.active", ".status.enabled"],
     X: [
-      // @ts-expect-error
-      { target: [".mode", "#lol"] },
-      // @ts-expect-error
-      { target: ["#lol", "#xyz"] },
+      { target: [
+        // @ts-expect-error
+        ".mode",
+        // @ts-expect-error
+        "#lol"
+      ] },
+      { target: [
+        // @ts-expect-error
+        "#lol",
+        // @ts-expect-error
+        "#xyz"
+      ] },
       { target: [".mode.active", ".status.enabled"] },
-      // @ts-expect-error
-      { target: ["foobar"] }
+      { target: [
+        // @ts-expect-error
+        "foobar"
+      ] }
     ],
     FOO: {
-      // @ts-expect-error
-      target: [".mode", "#lol"]
+      target: [
+        // @ts-expect-error
+        ".mode",
+        // @ts-expect-error
+        "#lol"
+      ]
     },
     BAR: { target: [".mode.active", ".status.enabled"] },
   }
-});
+})

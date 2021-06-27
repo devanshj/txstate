@@ -156,80 +156,75 @@ namespace MachineDefinition {
         Path,
         Precomputed,
         StateNodePath,
-        
-        Self = A.Get<Definition, Path>,
-        IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
-        StateNode = A.Get<Definition, StateNodePath>,
-        SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
-        TargetPathString =
-          | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
-          | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
-          | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
-          | ( [SiblingIdentifier] extends [never]
-                ? never
-                : SiblingIdentifier extends any
-                    ? ReferencePathString.WithRoot<
-                        A.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
-                        SiblingIdentifier,
-                        2
-                      > extends infer X ? S.Assert<X> : never
-                    : never
-            )
+        Self = A.Get<Definition, Path>
       > =
-        ( Self extends { target: any } ? never :
-            ( Self extends A.Object[] ? never :
-              | undefined
-              | TargetPathString
-              | ( Self extends A.Tuple<TargetPathString>
-                    ? ParallelTargetPathStrings.OfWithStateNodePath<
-                        Definition,
-                        Path,
-                        Precomputed,
-                        StateNodePath
+        | TargetWithExtras<Definition, Path, Precomputed, StateNodePath>
+        | ( Self extends { target: any } ? never :
+            | Target<Definition, Path, Precomputed, StateNodePath>
+            | ( Self extends A.Tuple
+                ? { [K in keyof Self]:
+                      TargetWithExtras<
+                        Definition, L.Push<Path, K>, Precomputed, StateNodePath
                       >
-                    : A.Tuple<TargetPathString>
-                )
-            )
-            | ( Self extends A.Object[]
-                  ? { [K in keyof Self]:
-                        { target?:
-                            | undefined
-                            | TargetPathString
-                            | ( A.Get<Self[K], "target"> extends A.Tuple<TargetPathString>
-                                  ? ParallelTargetPathStrings.OfWithStateNodePath<
-                                      Definition,
-                                      L.Concat<Path, [K, "target"]>,
-                                      Precomputed,
-                                      StateNodePath
-                                    >
-                                  : A.Tuple<TargetPathString>
-                              )
-                        , internal?: boolean
-                        }
-                    }
-                  : { target:
-                        | undefined
-                        | TargetPathString
-                        | A.Tuple<TargetPathString>
-                    , internal?: boolean
-                    }[]
+                  }
+                : A.Tuple<TargetWithExtras<
+                    Definition, L.Push<Path, number>, Precomputed, StateNodePath, true
+                  >>
               )
-        )
-        | { target?:
-              | undefined
-              | TargetPathString
-              | ( Self extends { target: A.Tuple<TargetPathString> }
-                    ? ParallelTargetPathStrings.OfWithStateNodePath<
-                        Definition,
-                        L.Push<Path, "target">,
-                        Precomputed,
-                        StateNodePath
-                      >
-                    : A.Tuple<TargetPathString>
-                )
-          , internal?: boolean
-          };
+          )
 
+    type TargetWithExtras<
+      Definition,
+      Path,
+      Precomputed,
+      StateNodePath,
+      NoChecks = false,
+    > =
+      { target?: Target<Definition, L.Push<Path, "target">, Precomputed, StateNodePath, NoChecks>
+      , internal?: boolean
+      }
+
+    type Target<
+      Definition,
+      Path,
+      Precomputed,
+      StateNodePath,
+      NoChecks = false,
+      
+      Self = A.Get<Definition, Path>,
+      IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
+      StateNode = A.Get<Definition, StateNodePath>,
+      SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
+      TargetPathString =
+        | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )
+        | ( ReferencePathString.WithRoot<StateNode, "", 2> extends infer X ? S.Assert<X> : never )
+        | ( Precomputed.Get<Precomputed, "ReferencePathString.OfId"> extends infer X ? S.Assert<X> : never )
+        | ( [SiblingIdentifier] extends [never]
+              ? never
+              : SiblingIdentifier extends any
+                  ? ReferencePathString.WithRoot<
+                      A.Get<Definition, [...L.Popped<StateNodePath>, SiblingIdentifier]>,
+                      SiblingIdentifier,
+                      2
+                    > extends infer X ? S.Assert<X> : never
+                  : never
+          )
+    > =
+      | ( NoChecks extends true ? TargetPathString :
+          Self extends A.String
+            ? TargetPathString
+            : never
+        )
+      | ( NoChecks extends true ? A.Tuple<TargetPathString> :
+          Self extends A.Tuple<TargetPathString>
+            ? ParallelTargetPathStrings.OfWithStateNodePath<
+                Definition,
+                Path,
+                Precomputed,
+                StateNodePath
+              >
+            : A.Tuple<TargetPathString>
+        )
 
     export type Desugar<T, R> =
       ( T extends A.Object[] ? T :

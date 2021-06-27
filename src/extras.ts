@@ -63,7 +63,7 @@ export namespace A {
   export type Cast<T, U> = T extends U ? T : U;
   export type Function = (...args: any[]) => any;
   export type Tuple<T = any> = T[] | [T];
-  export type TupleOrUnit<T> = T | [T] | T[];
+  export type TupleOrUnit<T> = T | Tuple<T>;
 
   export type TupleOrUnitOfStringLiteralAnd<T, Self> =
     | [S.InferNarrowest<A.Get<Self, 0>> | T]

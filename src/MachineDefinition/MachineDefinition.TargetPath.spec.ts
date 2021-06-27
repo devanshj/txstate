@@ -16,7 +16,9 @@ Machine({
     E: "a",
     F: "b.b1",
     // @ts-expect-error
-    Z: ""
+    Z: "",
+    // @ts-expect-error
+    W: "bogus"
   },
   states: {
     a: {
@@ -27,9 +29,7 @@ Machine({
           always: [
             { target: "#baz" },
             // @ts-expect-error
-            { target: "zzz" },
-            // TODO @\ts-expect-error better error
-            // "#baz"
+            { target: "zzz" }
           ]
         },
         a2: {}
