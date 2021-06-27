@@ -1,7 +1,7 @@
-import { createSchema, Machine } from "..";
+import { createSchema, createMachine } from "..";
 import { Type } from "../extras";
 
-Machine({
+createMachine({
   initial: "a",
   schema: {
     events: createSchema<
@@ -40,7 +40,7 @@ Machine({
   }
 })
 
-Machine({
+createMachine({
   initial: "a",
   schema: {
     // @ts-expect-error
@@ -53,7 +53,7 @@ Machine({
   }
 })
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: {
@@ -74,7 +74,7 @@ Machine({
 })
 
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: {}
@@ -89,7 +89,7 @@ Machine({
   }, "a"]
 })
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: {}
@@ -104,7 +104,7 @@ Machine({
   }
 })
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: {
@@ -132,7 +132,7 @@ Machine({
 })
 
 
-let testA = Machine({
+let testA = createMachine({
   initial: "a",
   states: {
     a: {

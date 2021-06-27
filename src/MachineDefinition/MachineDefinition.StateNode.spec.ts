@@ -1,19 +1,19 @@
-import { Machine } from "..";
+import { createMachine } from "..";
 
-Machine({
+createMachine({
   initial: "a",
   states: { a: {} },
 });
 
 
-Machine({
+createMachine({
   // @ts-expect-error
   initial: "b",
   states: { a: {} }
 })
 
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: {
@@ -28,19 +28,19 @@ Machine({
 
 
 // @ts-expect-error
-Machine({
+createMachine({
   states: { a: {} }
 })
 
 
-Machine({
+createMachine({
   initial: 1,
   // @ts-expect-error
   states: { 1: {} }
 })
 
 
-Machine({
+createMachine({
   type: "atomic",
   // @ts-expect-error
   initial: "a",
@@ -49,16 +49,16 @@ Machine({
 })
 
 
-Machine({})
+createMachine({})
 
-Machine({
+createMachine({
   type: "parallel",
   // @ts-expect-error
   initial: "a",
   states: { a: {}, b: {} }
 })
 
-Machine({
+createMachine({
   states: {
     // @ts-expect-error
     "a.b": {}

@@ -1,6 +1,6 @@
-import { Machine } from "..";
+import { createMachine } from "..";
 
-Machine({
+createMachine({
   id: "settings",
   type: "parallel",
   states: {

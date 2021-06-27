@@ -1,6 +1,6 @@
-import { Machine } from "..";
+import { createMachine } from "..";
 
-Machine({
+createMachine({
   initial: "a",
   id: "bar",
   on: {
@@ -58,7 +58,7 @@ Machine({
   }
 })
 
-Machine({
+createMachine({
   initial: "a",
   // @ts-expect-error
   id: "bar",
@@ -78,12 +78,12 @@ Machine({
   }
 })
 
-Machine({
+createMachine({
   // @ts-expect-error
   id: 1,
 })
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: { on: { FOO: "c" } },
@@ -99,7 +99,7 @@ Machine({
 })
 
 
-Machine({
+createMachine({
   initial: "a",
   states: {
     a: {

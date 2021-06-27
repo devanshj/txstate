@@ -11,7 +11,7 @@ type Machine<
   { config: D
   }
 
-export declare const Machine:
+export declare const createMachine:
   <D extends MachineDefinition.Of<D>>(definition: A.InferNarrowestObject<D>) =>
     Machine<D>
  
