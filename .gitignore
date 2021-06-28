@@ -1,4 +1,3 @@
 /node_modules
 /updates-stuff
-/isolated-tsc/node_modules
-/isolated-tsc/txstate.d.ts
+/temp.js
