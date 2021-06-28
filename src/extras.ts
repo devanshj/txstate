@@ -75,7 +75,7 @@ export namespace A {
   export type Tuple<T = any> = T[] | [T];
   export type TupleOrUnit<T> = T | Tuple<T>;
 
-  export type TupleOrUnitOfStringLiteralAnd<T, Self> =
+  export type TupleOrUnitOfStringLiteralOr<T, Self> =
     | [S.InferNarrowest<A.Get<Self, 0>> | T]
     | { [K in keyof Self]: S.InferNarrowest<Self[K]> | T }
     | (S.InferNarrowest<Self> | T)
@@ -147,7 +147,7 @@ export namespace F {
 export namespace S {
   export type String = string;
   export type Assert<T> = A.Cast<T, A.String>
-  export type InferNarrowest<T> = T extends string ? T : never
+  export type InferNarrowest<T> = T extends string ? T : string
   
   export type DoesStartWith<S, X> =
     S extends X ? B.True :

@@ -121,7 +121,7 @@ namespace MachineDefinition {
               Initial extends A.Object ?
                 { target: [ReferencePathString.Append<R, A.Get<Initial, "target">>]
                 , actions:
-                    Actions.Desugar<
+                    Action.Desugar<
                       A.Get<Initial, "actions">,
                       ReferencePathString.Append<R, "initial.actions">
                     >
@@ -143,8 +143,8 @@ namespace MachineDefinition {
             }
           : never
       , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
-      , entry: Actions.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
-      , exit: Actions.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">>
+      , entry: Action.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
+      , exit: Action.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">>
       , history: A.Get<N, "type"> extends "history" ? A.Get<N, "history", "shallow"> : undefined
       , target: A.Get<N, "target">
       }
@@ -180,8 +180,9 @@ namespace MachineDefinition {
       Precomputed,
       StateNodePath,
       NoChecks = false,
+      Self = A.Get<Definition, Path>
     > =
-      { target?:
+      { target:
           TargetWithStateNodePath<
             Definition,
             L.Pushed<Path, "target">,
@@ -189,6 +190,7 @@ namespace MachineDefinition {
             StateNodePath,
             NoChecks
           >
+      , actions?: Action.Of<Definition, L.Pushed<Path, "actions">, Precomputed>
       , internal?: boolean
       }
 
@@ -248,7 +250,7 @@ namespace MachineDefinition {
                     : never
               , internal: A.Get<Ts[K], "internal">
               , guard: A.Get<Ts[K], "guard", () => true>
-              , actions: Actions.Desugar<A.Get<Ts[K], "actions">, R>
+              , actions: Action.Desugar<A.Get<Ts[K], "actions">, R>
               , __referencePath: ReferencePathString.Append<R, K>
               } extends infer Target
                 ? O.Update<Target, {
@@ -402,19 +404,53 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>,
       NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
     > =
-      A.TupleOrUnitOfStringLiteralAnd<
-        (( context: "TODO"
+      A.TupleOrUnitOfStringLiteralOr<
+        ( context: "TODO"
         , event: Machine.EntryEventForStateNode.Of<
             Definition,
             Precomputed,
             NodeReferencePathString
           >
-        ) => void),
+        ) => void,
         Self
       >
   }
 
-  export namespace Actions {
+  export namespace Action {
+    export type Of<
+      Definition,
+      Path,
+      Precomputed,
+      Self = A.Get<Definition, Path>
+    > =
+      | [ | S.InferNarrowest<A.Get<Self, 0>>
+          | ((context: "TODO", event: "TODO") => unknown)
+          | ( { type: S.InferNarrowest<A.Get<Self, [0, "type"]>>
+              , exec?: (context: "TODO", event: "TODO") => unknown
+              }
+            & { [_ in string]: unknown }
+            )
+        ]
+      | ( Self extends [{ type: unknown  }] ? never :
+            { [K in keyof Self]:
+                | S.InferNarrowest<Self[K]>
+                | ((context: "TODO", event: "TODO") => unknown)
+                | ( { type: S.InferNarrowest<A.Get<Self[K], "type">>
+                    , exec?: (context: "TODO", event: "TODO") => unknown
+                    }
+                  & { [_ in string]: unknown }
+                  )
+            }
+        )
+      | S.InferNarrowest<Self>
+      | ((context: "TODO", event: "TODO") => unknown)
+      | ( { type: S.InferNarrowest<A.Get<Self, "type">>
+          , exec?: (context: "TODO", event: "TODO") => unknown
+          }
+        & { [_ in string]: unknown }
+        )
+
+
     export type Desugar<A, R, DefaultActionType = "actions"> =
       A extends undefined ? [] :
       (A extends any[] ? A : [A]) extends infer A

@@ -151,7 +151,9 @@ let testA = createMachine({
       }
     },
     c: { entry: "a" },
-    d: { entry: [] }
+    d: { entry: [] },
+    // TODO @\ts-expect-error
+    e: { entry: {} }
   },
   entry: [(_, event) => {
     Type.tests([
@@ -164,7 +166,7 @@ testA.config.entry[0]({} as any, {
 })
 testA.config.entry[0]({} as any, {
   // @ts-expect-error
-  type: "BAR"
+  type: ""
 })
 
 testA.config.states.a.entry[0]({} as any, {
@@ -172,13 +174,13 @@ testA.config.states.a.entry[0]({} as any, {
 })
 testA.config.states.a.entry[0]({} as any, {
   // @ts-expect-error
-  type: "BAR"
+  type: ""
 })
 
 testA.config.entry[1] === "a"
 // @ts-expect-error
-testA.config.entry[1] === "b"
+testA.config.entry[1] === ""
 
 testA.config.states.c.entry === "a";
 // @ts-expect-error
-testA.config.states.c.entry === "b";
+testA.config.states.c.entry === "";
