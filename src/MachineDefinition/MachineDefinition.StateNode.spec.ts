@@ -2,6 +2,7 @@ import { createMachine, createSchema } from "..";
 
 createMachine({
   initial: "a",
+  context: {},
   states: { a: {} },
 });
 
@@ -50,7 +51,9 @@ createMachine({
 })
 
 
-createMachine({})
+createMachine({
+  context: {}
+})
 
 createMachine({
   type: "parallel",

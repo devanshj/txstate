@@ -10,6 +10,7 @@ let t0 = createMachine({
       | { type: "D", bar: number }
     >()
   },
+  context: {},
   initial: "a",
   states: {
     a: {
@@ -125,6 +126,7 @@ let t4 = createMachine({
       | { type: "W" }
     >()
   },
+  context: {},
   initial: "a",
   states: {
     a: {
@@ -167,6 +169,7 @@ createMachine({
       | { type: "Z" }
     >()
   },
+  context: {},
   initial: "a",
   states: {
     a: {

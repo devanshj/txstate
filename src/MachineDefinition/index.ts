@@ -22,9 +22,21 @@ namespace MachineDefinition {
               A.IsPlainObject<A.Get<Definition, ["schema", "context"]>> extends true
                 ? A.Get<Definition, ["schema", "context"]>
                 : `Error: The type you is not an object`
+          , actions?:
+              A.Get<Definition, ["schema", "actions"]> extends { type: string }
+                ? A.Get<Definition, ["schema", "actions"]>
+                : `Error: The type you provided does not extends { type: string }`
+          , guards?:
+              A.Get<Definition, ["schema", "guards"]> extends { type: string }
+                ? A.Get<Definition, ["schema", "guards"]>
+                : `Error: The type you provided does not extends { type: string }`
+          , services?:
+              A.Get<Definition, ["schema", "services"]> extends { type: string }
+                ? A.Get<Definition, ["schema", "services"]>
+                : `Error: The type you provided does not extends { type: string }`
           }
       }
-    & { context?:
+    & { context:
           ContextSchema extends undefined
             ? Context extends A.Function
                 ? A.IsPlainObject<F.Called<Context>> extends true
@@ -230,8 +242,7 @@ namespace MachineDefinition {
       Precomputed,
       StateNodePath,
       EventType,
-      NoChecks = false,
-      Self = A.Get<Definition, Path>
+      NoChecks = false
     > =
       { target:
           TargetWithStateNodePath<
@@ -510,9 +521,11 @@ namespace MachineDefinition {
           Definition, Precomputed,
           ((context: "TODO", event: Event) => unknown)
         >
-      | { type: S.InferNarrowest<A.Get<Self, "type">>
-        , exec?: (context: "TODO", event: Event) => unknown
-        }
+      | ( { type: S.InferNarrowest<A.Get<Self, "type">>
+          , exec?: (context: "TODO", event: Event) => unknown
+          }
+        & { [_ in U.Exclude<keyof Self, "type" | "exec">]: unknown }
+        )
 
 
     export type Desugar<A, R, DefaultActionType = "actions"> =
