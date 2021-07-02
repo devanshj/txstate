@@ -7,3 +7,5 @@ export declare const createMachine:
     Machine.Of<D>
  
 export declare const createSchema: <T>() => T
+export declare const send: Machine.SendAction.Creator;
+    

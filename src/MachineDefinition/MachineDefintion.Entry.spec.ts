@@ -4,7 +4,7 @@ import { Type } from "../extras";
 createMachine({
   initial: "a",
   schema: {
-    events: createSchema<
+    event: createSchema<
       | { type: "FOO", x: number }
       | { type: "BAR" }
     >()
@@ -28,6 +28,7 @@ createMachine({
         b2: {}
       },
       entry: (_, event) => {
+        event.type
         Type.tests([
           Type.areEqual<typeof event,
             | { type: "FOO", x: number }
@@ -44,7 +45,7 @@ createMachine({
   initial: "a",
   schema: {
     // @ts-expect-error
-    events: createSchema<
+    event: createSchema<
       | { noType: "" }
     >()
   },

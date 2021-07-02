@@ -11,6 +11,8 @@ export namespace O {
     & { [K in U.Exclude<keyof A, keyof B>]: A[K] }
     & { [K in keyof B]: B[K] }
 
+  export type Omit<T, K> =
+    { [P in U.Exclude<keyof T, K>]: T[P] }
 }
 
 export namespace L {
@@ -67,6 +69,19 @@ export namespace L {
 
   export type Some<A> =
     B.Not<A.AreEqual<A.Get<A, number>, false>>
+
+  export type Filter<L, X = Filter.Out> =
+    L extends [] ? [] :
+    L extends [infer H, ...infer T]
+      ? H extends X
+        ? Filter<T, X>
+        : [H, ...Filter<T, X>]
+      : never
+  export namespace Filter {
+    declare const Out: unique symbol;
+    export type Out = typeof Out;
+  }
+
 }
 
 export namespace A {
@@ -89,11 +104,23 @@ export namespace A {
       ? P extends [] ?
           T extends undefined ? F : T :
         P extends [infer K1, ...infer Kr] ?
-          K1 extends keyof T
-            ? Get<T[K1], Kr, F> extends infer X ? A.Cast<X, any> : never
-            : F :
+          K1 extends Get.Parameters ?
+            F.Parameters<T> :
+          K1 extends Get.Called ?
+            F.Called<T> :
+          K1 extends keyof T ?
+            Get<T[K1], Kr, F> extends infer X ? A.Cast<X, any> : never :
+          F :
         never 
       : Get<T, [P], F>
+
+  export namespace Get {
+    declare const Parameters: unique symbol;
+    export type Parameters = typeof Parameters;
+
+    declare const Called: unique symbol;
+    export type Called = typeof Called;
+  }
 
   export type InferNarrowest<T> =
     T extends any
@@ -106,12 +133,19 @@ export namespace A {
   export type InferNarrowestObject<T> =
     { readonly [K in keyof T]: InferNarrowest<T[K]> }
 
+  export type NoInfer<T> =
+    [T][T extends any ? 0 : never]
+
   export type AreEqual<A, B> =
     (<T>() => T extends B ? 1 : 0) extends (<T>() => T extends A ? 1 : 0)
       ? true
       : false;
 
   export type DoesExtend<A, B> = A extends B ? true : false;
+  
+  export declare const test: (o: true) => void;
+  export declare const areEqual: <A, B>(f?: (b?: A) => void) => A.AreEqual<A, B>;
+
 }
 
 export namespace U {
@@ -140,7 +174,7 @@ export namespace B {
 }
 
 export namespace F {
-  export type Call<F> = F extends (...args: any[]) => infer R ? R : never;
+  export type Called<F> = F extends (...args: any[]) => infer R ? R : never;
   export type Parameters<F> = F extends (...args: infer A) => any ? A : never;
 }
 

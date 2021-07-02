@@ -1,4 +1,4 @@
-import { O, A, U, L, B, Type, S } from "../extras";
+import { O, A, U, L, B, Type, S, F } from "../extras";
 import Machine from "../Machine";
 import { ReferencePathString } from "../universal";
 
@@ -10,18 +10,25 @@ namespace MachineDefinition {
         Precomputed.Of<Definition>
       >
     & { schema?:
-          { events?: 
-              A.Get<Definition, ["schema", "events"]> extends { type: string }
-                ? A.Get<Definition, ["schema", "events"]>
+          { event?: 
+              A.Get<Definition, ["schema", "event"]> extends { type: string }
+                ? A.Get<Definition, ["schema", "event"]>
                 : `Error: The type you provided does not extends { type: string }`
           }
       }
-    & { context?: "TODO" }
+    & { context?: object }
     & { [_ in $$Self]?: Definition }
 
  
   const $$Self = Symbol("$$Self")
   export type $$Self = typeof $$Self;
+
+
+  export type Internal<T> =
+    { [_ in $$Internal]: T }
+
+  const $$Internal = Symbol("$$Internal")
+  export type $$Internal = typeof $$Internal;
 
   export type Desugar<D> =
     & StateNode.Desugar<D, "">
@@ -35,7 +42,7 @@ namespace MachineDefinition {
         | "ReferencePathString"
         | "IdMap"
         | "DesugaredDefinition"
-        | "InitialConfigurationState"
+        | "InitialStateNodeReferencePathString"
     > =
       A.Get<Precomputed, Key>
 
@@ -46,7 +53,7 @@ namespace MachineDefinition {
       , "DesugaredDefinition": MachineDefinition.Desugar<Definition>
       } extends infer P
         ? & P
-          & { "InitialConfigurationState": Machine.InitialConfigurationState.Of<Definition, P>
+          & { "InitialStateNodeReferencePathString": Machine.InitialStateNodeReferencePathString.Of<Definition, P>
             }
         : never
   }
@@ -61,7 +68,7 @@ namespace MachineDefinition {
       States = A.Get<Self, "states">,
       Type = A.Get<Self, "type", "compound">,
       On = A.Get<Self, "on">,
-      EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>
+      EventIdentifierSpec = A.Get<Definition, ["schema", "event", "type"], never>
     > =
       & { type?:
             | "compound"
@@ -90,22 +97,23 @@ namespace MachineDefinition {
         )
       & { id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , on?: 
-            { [EventIdentifier in U.Extract<EventIdentifierSpec, A.String> | keyof On]:
+            { [EventIdentifier in keyof On]:
                 EventIdentifier extends A.String
                   ? L.Some<
                     [ A.DoesExtend<[EventIdentifierSpec], [never]>
                     , A.DoesExtend<EventIdentifier, EventIdentifierSpec>
                     ]> extends true
-                      ? Transition.OfWithStateNodePath<
+                      ? Transition.OfWithStateNodePathAndEventType<
                           Definition,
                           L.Concat<Path, ["on", EventIdentifier]>,
                           Precomputed,
-                          Path
+                          Path,
+                          EventIdentifier
                         >
-                      : `Error: ${EventIdentifier} is not included in schema.events`
+                      : `Error: ${EventIdentifier} is not included in schema.event`
                   : "Error: only string identifier allowed"
             }
-        , always?: Transition.OfWithStateNodePath<Definition, L.Pushed<Path, "always">, Precomputed, Path>
+        , always?: Transition.OfWithStateNodePathAndEventType<Definition, L.Pushed<Path, "always">, Precomputed, Path, "">
         , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
         }
 
@@ -152,33 +160,37 @@ namespace MachineDefinition {
 
   export namespace Transition {
 
-    export type OfWithStateNodePath<
+    export type OfWithStateNodePathAndEventType<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
+      EventType,
       Self = A.Get<Definition, Path>
     > =
-      | TargetAndExtrasWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
+      | TargetAndExtrasWithStateNodePathAndEventType<
+          Definition, Path, Precomputed, StateNodePath, EventType
+        >
       | ( Self extends { target: any } ? never :
           | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
           | ( Self extends A.Tuple
               ? { [K in keyof Self]:
-                    TargetAndExtrasWithStateNodePath<
-                      Definition, L.Pushed<Path, K>, Precomputed, StateNodePath
+                    TargetAndExtrasWithStateNodePathAndEventType<
+                      Definition, L.Pushed<Path, K>, Precomputed, StateNodePath, EventType
                     >
                 }
-              : A.Tuple<TargetAndExtrasWithStateNodePath<
-                  Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, true
+              : A.Tuple<TargetAndExtrasWithStateNodePathAndEventType<
+                  Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, EventType, true
                 >>
             )
         )
 
-    type TargetAndExtrasWithStateNodePath<
+    type TargetAndExtrasWithStateNodePathAndEventType<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
+      EventType,
       NoChecks = false,
       Self = A.Get<Definition, Path>
     > =
@@ -190,7 +202,10 @@ namespace MachineDefinition {
             StateNodePath,
             NoChecks
           >
-      , actions?: Action.Of<Definition, L.Pushed<Path, "actions">, Precomputed>
+      , actions?: Action.OfWithStateNodePathAndEventType<
+          Definition, L.Pushed<Path, "actions">, Precomputed,
+          StateNodePath, EventType
+        >
       , internal?: boolean
       }
 
@@ -417,38 +432,48 @@ namespace MachineDefinition {
   }
 
   export namespace Action {
-    export type Of<
+    export type OfWithStateNodePathAndEventType<
       Definition,
       Path,
       Precomputed,
-      Self = A.Get<Definition, Path>
+      StateNodePath,
+      EventType,
+      Self = A.Get<Definition, Path>,
+      Event = U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: EventType }>
     > =
       | [ | S.InferNarrowest<A.Get<Self, 0>>
-          | ((context: "TODO", event: "TODO") => unknown)
+          | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
+              Definition, Precomputed,
+              ((context: "TODO", event: Event) => unknown)
+            >
           | ( { type: S.InferNarrowest<A.Get<Self, [0, "type"]>>
-              , exec?: (context: "TODO", event: "TODO") => unknown
+              , exec?: (context: "TODO", event: Event) => unknown
               }
             & { [_ in string]: unknown }
             )
         ]
-      | ( Self extends [{ type: unknown  }] ? never :
+      | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
             { [K in keyof Self]:
                 | S.InferNarrowest<Self[K]>
-                | ((context: "TODO", event: "TODO") => unknown)
+                | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
+                    Definition, Precomputed,
+                    ((context: "TODO", event: Event) => unknown)
+                  >
                 | ( { type: S.InferNarrowest<A.Get<Self[K], "type">>
-                    , exec?: (context: "TODO", event: "TODO") => unknown
+                    , exec?: (context: "TODO", event: Event) => unknown
                     }
                   & { [_ in string]: unknown }
                   )
             }
         )
       | S.InferNarrowest<Self>
-      | ((context: "TODO", event: "TODO") => unknown)
-      | ( { type: S.InferNarrowest<A.Get<Self, "type">>
-          , exec?: (context: "TODO", event: "TODO") => unknown
-          }
-        & { [_ in string]: unknown }
-        )
+      | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
+          Definition, Precomputed,
+          ((context: "TODO", event: Event) => unknown)
+        >
+      | { type: S.InferNarrowest<A.Get<Self, "type">>
+        , exec?: (context: "TODO", event: Event) => unknown
+        }
 
 
     export type Desugar<A, R, DefaultActionType = "actions"> =

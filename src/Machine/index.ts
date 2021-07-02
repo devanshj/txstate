@@ -1,4 +1,4 @@
-import { A, U, L } from "../extras";
+import { A, U, L, S, O, F } from "../extras";
 import MachineDefinition from "../MachineDefinition";
 import { ReferencePathString } from "../universal";
 
@@ -34,8 +34,8 @@ namespace Machine {
       On = A.Get<Root, "on">,
       Always = A.Get<Root, "always">,
       States = A.Get<Root, "states">,
-      EventSchema = A.Get<DesugaredDefinition, ["schema", "events"]>,
-      InitialConfigurationState = MachineDefinition.Precomputed.Get<Precomputed, "InitialConfigurationState">
+      EventSchema = A.Get<DesugaredDefinition, ["schema", "event"]>,
+      InitialState = MachineDefinition.Precomputed.Get<Precomputed, "InitialStateNodeReferencePathString">
     > =
       | { [E in keyof On]: 
           A.Get<On, [E, number]> extends infer T
@@ -80,13 +80,13 @@ namespace Machine {
               ReferencePathString.Append<RootReferencePathString, C>
             >
         }[keyof States]
-      | ( StateNodeReferencePathString extends InitialConfigurationState
+      | ( StateNodeReferencePathString extends InitialState
             ? { type: "xstate.init" }
             : never
         )
   }
 
-  export namespace InitialConfigurationState {
+  export namespace InitialStateNodeReferencePathString {
     export type Of<Definition, Precomputed> =
       WithRoot<Definition, Precomputed, "">;
 
@@ -115,5 +115,117 @@ namespace Machine {
                 : never
             : never
         }[keyof Always]
+  }
+
+  export namespace XstateAction {
+    export namespace InferralHint {
+      export type OfWithAdjacentAction<Definition, Precomputed, Action> =
+        SendAction.InferralHint.OfWithAdjacentAction<Definition, Precomputed, Action>
+    }
+    
+
+    export type IsOne<T> =
+      T extends { type: "xstate.send" } ? true :
+      false
+  }
+
+  export namespace SendAction {
+    export namespace InferralHint {
+      export type OfWithAdjacentAction<
+        Definition,
+        Precomputed,
+        Action,
+        PrecedingParameters = F.Parameters<Action>
+      > =
+        { ( context: A.Get<PrecedingParameters, 0>
+          , event: A.Get<PrecedingParameters, 1>
+          , $$internal:
+              MachineDefinition.Internal<
+                Creator.Parameters.Of<Definition, Precomputed>
+              >
+          ): void
+        , type?: "xstate.send"
+        }
+    }
+
+    export type FromInternalAndParameters<Internal, Parameters> =
+      { (context: unknown, event: unknown, $$internal: Internal): void
+      , type: "xstate.send"
+      , event:
+          A.Get<Parameters, 0> extends string
+            ? { type: A.Get<Parameters, 0> }
+            : A.Get<Parameters, 0>
+      }
+      
+    export type Creator =
+      < Internal
+      , Parameters extends Creator.Parameters.FromInternalAndSelf<Internal, Parameters>
+      > (...parameters: Parameters) =>
+        SendAction.FromInternalAndParameters<Internal, A.NoInfer<Parameters>>
+
+    export namespace Creator {
+      export namespace Parameters {
+        export type Of<
+          Definition,
+          Precomputed,
+          Event = Machine.Event.Of<Definition, Precomputed>
+        > =
+          Event extends any
+            ? | [event: Event]
+              | ( { type: A.Get<Event, "type"> } extends Event
+                    ? [event: A.Get<Event, "type">]
+                    : never
+                )
+            : never
+
+        export type FromInternalAndSelf<
+          Internal,
+          Self,
+          Parameters = A.Get<Internal, [MachineDefinition.$$Internal]>,
+          EventType = U.Extract<A.Get<Parameters, 0>, A.String>,
+          Event = U.Exclude<A.Get<Parameters, 0>, A.String>
+        > =
+          [ event:
+          | ( EventType extends any
+                ? S.InferNarrowest<EventType>
+                : never
+            )
+          | ( Event extends any
+                ? ( { type: S.InferNarrowest<A.Get<Event, "type">> }
+                  & O.Omit<Event, "type">
+                  )
+                : never
+            )
+          ]
+      }
+    }
+  }
+
+  export namespace Event {
+    export type Of<
+      Definition,
+      Precomputed,
+      EventSchema = EventSchema.Of<Definition>
+    > =
+      EventSchema extends undefined
+        ? WithRoot<Definition>
+        : EventSchema
+
+    type WithRoot<Root> =
+      | ( [keyof A.Get<Root, "on">] extends [never] ? never :
+          keyof A.Get<Root, "on"> extends infer E
+            ? E extends any ? { type: E } : never
+            : never
+        )
+      | ( [keyof A.Get<Root, "states">] extends [never] ? never :
+          { [S in keyof A.Get<Root, "states">]:
+              WithRoot<A.Get<Root, "states">[S]>
+          }[keyof A.Get<Root, "states">]
+        )
+  }
+
+  export namespace EventSchema {
+    export type Of<Definition> =
+      Definition extends { schema?: { event?: infer E } } ? E : undefined
   }
 }
