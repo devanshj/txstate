@@ -34,7 +34,7 @@ namespace Machine {
       On = A.Get<Root, "on">,
       Always = A.Get<Root, "always">,
       States = A.Get<Root, "states">,
-      EventSchema = A.Get<DesugaredDefinition, ["schema", "event"]>,
+      EventSchema = A.Get<DesugaredDefinition, ["schema", "events"]>,
       InitialState = MachineDefinition.Precomputed.Get<Precomputed, "InitialStateNodeReferencePathString">
     > =
       | { [E in keyof On]: 
@@ -226,6 +226,17 @@ namespace Machine {
 
   export namespace EventSchema {
     export type Of<Definition> =
-      Definition extends { schema?: { event?: infer E } } ? E : undefined
+      Definition extends { schema?: { events?: infer E } } ? E : undefined
+  }
+
+  export namespace Context {
+    export type Of<
+      Definition,
+      Precomputed,
+      ContextSchema = Definition extends { schema?: { context?: infer C } } ? C : undefined
+    > =
+      ContextSchema extends undefined
+        ? A.Get<Definition, "context">
+        : ContextSchema
   }
 }

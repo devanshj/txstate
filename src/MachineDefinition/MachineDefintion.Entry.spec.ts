@@ -4,7 +4,7 @@ import { Type } from "../extras";
 createMachine({
   initial: "a",
   schema: {
-    event: createSchema<
+    events: createSchema<
       | { type: "FOO", x: number }
       | { type: "BAR" }
     >()
@@ -45,7 +45,7 @@ createMachine({
   initial: "a",
   schema: {
     // @ts-expect-error
-    event: createSchema<
+    events: createSchema<
       | { noType: "" }
     >()
   },

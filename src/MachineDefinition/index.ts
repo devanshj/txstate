@@ -4,19 +4,39 @@ import { ReferencePathString } from "../universal";
 
 export default MachineDefinition;
 namespace MachineDefinition { 
-  export type Of<Definition> =
+  export type Of<
+    Definition,
+    ContextSchema = A.Get<Definition, ["schema", "context"]>,
+    Context = A.Get<Definition, "context">
+  > =
     & StateNode.Of<
         Definition, [],
         Precomputed.Of<Definition>
       >
     & { schema?:
-          { event?: 
-              A.Get<Definition, ["schema", "event"]> extends { type: string }
-                ? A.Get<Definition, ["schema", "event"]>
+          { events?: 
+              A.Get<Definition, ["schema", "events"]> extends { type: string }
+                ? A.Get<Definition, ["schema", "events"]>
                 : `Error: The type you provided does not extends { type: string }`
+          , context?:
+              A.IsPlainObject<A.Get<Definition, ["schema", "context"]>> extends true
+                ? A.Get<Definition, ["schema", "context"]>
+                : `Error: The type you is not an object`
           }
       }
-    & { context?: object }
+    & { context?:
+          ContextSchema extends undefined
+            ? Context extends A.Function
+                ? A.IsPlainObject<F.Called<Context>> extends true
+                    ? Context
+                    : () => `Error: context should be an object`
+                : A.IsPlainObject<Context> extends true
+                    ? Context
+                    : `Error: context should be an object`
+            : A.Get<Definition, "context"> extends A.Function
+                ? () => A.Get<Definition, ["schema", "context"]>
+                : A.Get<Definition, ["schema", "context"]>
+      }
     & { [_ in $$Self]?: Definition }
 
  
@@ -68,7 +88,7 @@ namespace MachineDefinition {
       States = A.Get<Self, "states">,
       Type = A.Get<Self, "type", "compound">,
       On = A.Get<Self, "on">,
-      EventIdentifierSpec = A.Get<Definition, ["schema", "event", "type"], never>
+      EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>
     > =
       & { type?:
             | "compound"

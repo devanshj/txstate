@@ -3,7 +3,7 @@ import { A, U } from "../extras"
 
 let t0 = createMachine({
   schema: {
-    event: createSchema<
+    events: createSchema<
       | { type: "A", foo: number }
       | { type: "B", foo: number }
       | { type: "C", foo: number }
@@ -118,7 +118,7 @@ createMachine({
 
 let t4 = createMachine({
   schema: {
-    event: createSchema<
+    events: createSchema<
       | { type: "X" }
       | { type: "Y", bar: number }
       | { type: "Z" }
@@ -161,7 +161,7 @@ A.test(A.areEqual<typeof t51, { type: "X" }>())
 
 createMachine({
   schema: {
-    event: createSchema<
+    events: createSchema<
       | { type: "X" }
       | { type: "Y", bar: number }
       | { type: "Z" }

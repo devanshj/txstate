@@ -105,9 +105,9 @@ export namespace A {
           T extends undefined ? F : T :
         P extends [infer K1, ...infer Kr] ?
           K1 extends Get.Parameters ?
-            F.Parameters<T> :
+            F.Parameters<T, F> :
           K1 extends Get.Called ?
-            F.Called<T> :
+            F.Called<T, F> :
           K1 extends keyof T ?
             Get<T[K1], Kr, F> extends infer X ? A.Cast<X, any> : never :
           F :
@@ -142,6 +142,11 @@ export namespace A {
       : false;
 
   export type DoesExtend<A, B> = A extends B ? true : false;
+  export type IsPlainObject<T> =
+    B.And<
+      A.DoesExtend<T, A.Object>,
+      B.Not<A.DoesExtend<T, A.Function>>
+    >
   
   export declare const test: (o: true) => void;
   export declare const areEqual: <A, B>(f?: (b?: A) => void) => A.AreEqual<A, B>;
@@ -174,8 +179,8 @@ export namespace B {
 }
 
 export namespace F {
-  export type Called<F> = F extends (...args: any[]) => infer R ? R : never;
-  export type Parameters<F> = F extends (...args: infer A) => any ? A : never;
+  export type Called<T, F = never> = T extends (...args: any[]) => infer R ? R : F;
+  export type Parameters<T, F = never> = T extends (...args: infer A) => any ? A : F;
 }
 
 export namespace S {

@@ -1,4 +1,4 @@
-import { createMachine } from "..";
+import { createMachine, createSchema } from "..";
 
 createMachine({
   initial: "a",
@@ -63,4 +63,62 @@ createMachine({
     // @ts-expect-error
     "a.b": {}
   }
+})
+
+createMachine({
+  schema: {
+    // @ts-expect-error
+    context: ""
+  }
+})
+
+createMachine({
+  schema: {
+    context: createSchema<{ foo: number }>()
+  },
+  context: {
+    // @ts-expect-error
+    foo: ""
+  }
+})
+
+
+createMachine({
+  schema: {
+    context: createSchema<{ foo: number }>()
+  },
+  // @ts-expect-error
+  context: () => ({ foo: "" })
+})
+
+createMachine({
+  schema: {
+    context: createSchema<{ foo: number }>()
+  },
+  context: { foo: 1 }
+})
+
+createMachine({
+  schema: {
+    context: createSchema<{ foo: number }>()
+  },
+  context: () => ({ foo: 1 })
+})
+
+createMachine({
+  // @ts-expect-error
+  context: ""
+})
+
+createMachine({
+  // @ts-expect-error
+  context: () => ""
+})
+
+createMachine({
+  context: { foo: 1 }
+})
+
+createMachine({
+  context: () => ({ foo: 1 })
 })
