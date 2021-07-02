@@ -87,7 +87,6 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>,
       States = A.Get<Self, "states">,
       Type = A.Get<Self, "type", "compound">,
-      Initial = A.Get<Self, "initial">,
       On = A.Get<Self, "on">,
       EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>
     > =
