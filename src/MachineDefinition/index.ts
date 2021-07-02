@@ -121,8 +121,7 @@ namespace MachineDefinition {
               >
           }
         )
-      & { id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
-        , on?: 
+      & { on?: 
             { [EventIdentifier in keyof On]:
                 EventIdentifier extends A.String
                   ? L.Some<
@@ -145,6 +144,11 @@ namespace MachineDefinition {
               Path, A.String
             >
         , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
+        , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
+        , order?: number
+        , meta?: unknown
+        , strict?: boolean
+        , history?: "shallow" | "deep" | boolean
         }
 
     export type Desugar<N, R> =
