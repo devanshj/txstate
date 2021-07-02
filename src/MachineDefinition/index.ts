@@ -87,6 +87,7 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>,
       States = A.Get<Self, "states">,
       Type = A.Get<Self, "type", "compound">,
+      Initial = A.Get<Self, "initial">,
       On = A.Get<Self, "on">,
       EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>
     > =
@@ -113,7 +114,12 @@ namespace MachineDefinition {
             { initial?: "Error: no states defined" } :
           Type extends "parallel" ?
             { initial?: undefined } :
-          { initial: keyof States }
+          { initial:
+              Transition.OfWithStateNodePathAndEventType<
+                Definition, L.Pushed<Path, "initial">, Precomputed,
+                Path, A.String
+              >
+          }
         )
       & { id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , on?: 
@@ -133,7 +139,11 @@ namespace MachineDefinition {
                       : `Error: ${EventIdentifier} is not included in schema.event`
                   : "Error: only string identifier allowed"
             }
-        , always?: Transition.OfWithStateNodePathAndEventType<Definition, L.Pushed<Path, "always">, Precomputed, Path, "">
+        , always?:
+            Transition.OfWithStateNodePathAndEventType<
+              Definition, L.Pushed<Path, "always">, Precomputed,
+              Path, A.String
+            >
         , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
         }
 
@@ -186,8 +196,14 @@ namespace MachineDefinition {
       Precomputed,
       StateNodePath,
       EventType,
-      Self = A.Get<Definition, Path>
+      Self = A.Get<Definition, Path>,
+      IsInitial = A.DoesExtend<L.Pop<Path>, "initial">
     > =
+      IsInitial extends true
+        ? | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
+          | TargetAndExtrasWithStateNodePathAndEventType<
+              Definition, Path, Precomputed, StateNodePath, EventType
+            > :
       | TargetAndExtrasWithStateNodePathAndEventType<
           Definition, Path, Precomputed, StateNodePath, EventType
         >
@@ -236,9 +252,9 @@ namespace MachineDefinition {
       StateNodePath,
       NoChecks = false,
       
-      Self = A.Get<Definition, Path>,
-      IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
       StateNode = A.Get<Definition, StateNodePath>,
+      Self = A.Get<Definition, Path> extends infer X ? X : never,
+      IsRoot = A.Get<StateNodePath, "length"> extends 0 ? true : false,
       SiblingIdentifier = IsRoot extends true ? never : keyof A.Get<Definition, L.Popped<StateNodePath>>,
       TargetPathString =
         | ( ReferencePathString.WithRoot<StateNode, "."> extends infer X ? S.Assert<X> : never )

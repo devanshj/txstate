@@ -34,6 +34,7 @@ createMachine({
 
 
 createMachine({
+  // @ts-expect-error 
   initial: 1,
   // @ts-expect-error
   states: { 1: {} }

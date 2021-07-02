@@ -83,21 +83,45 @@ createMachine({
   id: 1,
 })
 
-createMachine({
+let t0 = createMachine({
   initial: "a",
+  states: { a: {} }
+})
+
+t0.config.initial === "a"
+// @ts-expect-error
+t0.config.initial === ".a"
+
+createMachine({
+  initial: { target: "a" },
+  states: { a: {} }
+})
+
+createMachine({
+  initial: {
+    // @ts-expect-error
+    target: "x"
+  },
+  states: { a: {} }
+})
+
+createMachine({
+  initial: [
+    // @ts-expect-error
+    ".a",
+    // @ts-expect-error
+    ".c.c1"
+  ],
   states: {
     a: { on: { FOO: "c" } },
     c: {
       initial: "c1",
       states: {
-        c1: {
-
-        }
+        c1: {}
       }
     }
   }
 })
-
 
 createMachine({
   initial: "a",
