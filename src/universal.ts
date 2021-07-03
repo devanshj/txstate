@@ -39,20 +39,20 @@ export namespace ReferencePathString {
     A.Get<Path, "length"> extends 0 ? "" :
     S.Replace<L.Join<Path, ".">, "states.", "">
 
-  Type.tests([
-    Type.areEqual<FromDefinitionPath<[]>, "">(),
-    Type.areEqual<FromDefinitionPath<["states", "a"]>, "a">(),
-    Type.areEqual<FromDefinitionPath<["states", "a", "states", "b"]>, "a.b">()
+  A.tests([
+    A.areEqual<FromDefinitionPath<[]>, "">(),
+    A.areEqual<FromDefinitionPath<["states", "a"]>, "a">(),
+    A.areEqual<FromDefinitionPath<["states", "a", "states", "b"]>, "a.b">()
   ])
 
   export type ToDefinitionPath<ReferencePathString> =
     ReferencePathString extends "" ? [] :
     ["states", ...S.Split<S.Replace<ReferencePathString, ".", ".states.">, ".">]
 
-  Type.tests([
-    Type.areEqual<ToDefinitionPath<"">, []>(),
-    Type.areEqual<ToDefinitionPath<"a">, ["states", "a"]>(),
-    Type.areEqual<ToDefinitionPath<"a.b">, ["states", "a", "states", "b"]>(),
+  A.tests([
+    A.areEqual<ToDefinitionPath<"">, []>(),
+    A.areEqual<ToDefinitionPath<"a">, ["states", "a"]>(),
+    A.areEqual<ToDefinitionPath<"a.b">, ["states", "a", "states", "b"]>(),
   ])
 
   export type ToNode<ReferencePathString, Definition> =
@@ -143,8 +143,8 @@ export namespace ReferencePathString {
               ReferencePathString.Unresolved.OfIdWithRoot<States[S]>
           }[keyof States]
 
-        Type.tests([
-          Type.areEqual<
+        A.tests([
+          A.areEqual<
             ReferencePathString.Unresolved.OfIdWithRoot<{ id: "root", states: {
               a: { states: { a1: {}, a2: {} } },
               b: { id: "b", states: { b1: {}, b2: {} } }
@@ -187,8 +187,8 @@ export namespace ReferencePathString {
             }[keyof States]
       )
 
-  Type.tests([
-    Type.areEqual<
+  A.tests([
+    A.areEqual<
       ReferencePathString.WithRoot<{ states: {
         a: { states: { a1: {}, a2: {} } },
         b: { states: { b1: {}, b2: {} } }

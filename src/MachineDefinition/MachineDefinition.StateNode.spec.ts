@@ -10,12 +10,14 @@ createMachine({
 createMachine({
   // @ts-expect-error
   initial: "b",
+  context: {},
   states: { a: {} }
 })
 
 
 createMachine({
   initial: "a",
+  context: {},
   states: {
     a: {
       // @ts-expect-error
@@ -30,6 +32,7 @@ createMachine({
 
 // @ts-expect-error
 createMachine({
+  context: {},
   states: { a: {} }
 })
 
@@ -37,6 +40,7 @@ createMachine({
 createMachine({
   // @ts-expect-error 
   initial: 1,
+  context: {},
   // @ts-expect-error
   states: { 1: {} }
 })
@@ -46,6 +50,7 @@ createMachine({
   type: "atomic",
   // @ts-expect-error
   initial: "a",
+  context: {},
   // @ts-expect-error
   states: { a: {} }
 })
@@ -59,10 +64,12 @@ createMachine({
   type: "parallel",
   // @ts-expect-error
   initial: "a",
+  context: {},
   states: { a: {}, b: {} }
 })
 
 createMachine({
+  context: {},
   states: {
     // @ts-expect-error
     "a.b": {}

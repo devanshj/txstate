@@ -149,6 +149,12 @@ export namespace A {
     >
   
   export declare const test: (o: true) => void;
+  export declare const tests:
+    (ts:
+      [ true?, true?, true?, true?, true?,
+        true?, true?, true?, true?, true?,
+        true?, true?, true?, true?, true?,
+      ]) => void
   export declare const areEqual: <A, B>(f?: (b?: A) => void) => A.AreEqual<A, B>;
 
 }
@@ -221,15 +227,4 @@ export namespace N {
   
   export type Decrement<N> =
     A.Get<PositiveIntegersUnshiftedTwice, N>
-}
-
-export namespace Type {
-  export declare const tests:
-    (ts:
-      [ true?, true?, true?, true?, true?,
-        true?, true?, true?, true?, true?,
-        true?, true?, true?, true?, true?,
-      ]) => void
-
-  export declare const areEqual: <A, B>(f?: (b?: A) => void) => A.AreEqual<A, B>;
 }

@@ -1,8 +1,9 @@
 import { createSchema, createMachine } from "..";
-import { Type } from "../extras";
+import { A } from "../extras";
 
 createMachine({
   initial: "a",
+  context: {},
   schema: {
     events: createSchema<
       | { type: "FOO", x: number }
@@ -29,12 +30,11 @@ createMachine({
       },
       entry: (_, event) => {
         event.type
-        Type.tests([
-          Type.areEqual<typeof event,
-            | { type: "FOO", x: number }
-            | { type: "xstate.init" }
-          >()
-        ])
+        A.test(A.areEqual<
+          typeof event,
+          | { type: "FOO", x: number }
+          | { type: "xstate.init" }
+        >())
       }
     },
     c: {}
@@ -43,6 +43,7 @@ createMachine({
 
 createMachine({
   initial: "a",
+  context: {},
   schema: {
     // @ts-expect-error
     events: createSchema<
@@ -56,6 +57,7 @@ createMachine({
 
 createMachine({
   initial: "a",
+  context: {},
   states: {
     a: {
       on: { FOO: "b" }
@@ -66,8 +68,8 @@ createMachine({
     },
     c: {
       entry: (_, event) => {
-        Type.tests([
-          Type.areEqual<typeof event, { type: "FOO" }>()
+        A.tests([
+          A.areEqual<typeof event, { type: "FOO" }>()
         ])
       }
     }
@@ -77,6 +79,7 @@ createMachine({
 
 createMachine({
   initial: "a",
+  context: {},
   states: {
     a: {}
   },
@@ -84,14 +87,13 @@ createMachine({
     X: { target: ".a" }
   },
   entry: [(_, event) => {
-    Type.tests([
-      Type.areEqual<typeof event, never>()
-    ])
+    A.test(A.areEqual<typeof event, never>())
   }, "a"]
 })
 
 createMachine({
   initial: "a",
+  context: {},
   states: {
     a: {}
   },
@@ -99,27 +101,26 @@ createMachine({
     X: { target: ".a", internal: false }
   },
   entry: (_, event) => {
-    Type.tests([
-      Type.areEqual<typeof event, { type: "X" }>()
-    ])
+    A.test(A.areEqual<typeof event, { type: "X" }>())
   }
 })
 
 createMachine({
   initial: "a",
+  context: {},
   states: {
     a: {
       _: null,
       entry: (_, event) => {
-        Type.tests([
-          Type.areEqual<typeof event, { type: "X" } | { type: "xstate.init" }>()
+        A.tests([
+          A.areEqual<typeof event, { type: "X" } | { type: "xstate.init" }>()
         ])
       }
     },
     b: {
       entry: (_, event) => {
-        Type.tests([
-          Type.areEqual<typeof event, { type: "X" }>()
+        A.tests([
+          A.areEqual<typeof event, { type: "X" }>()
         ])
       }
     }
@@ -135,20 +136,17 @@ createMachine({
 
 let testA = createMachine({
   initial: "a",
+  context: {},
   states: {
     a: {
       on: { FOO: "b" },
       entry: [(_, event) => {
-        Type.tests([
-          Type.areEqual<typeof event, { type: "xstate.init" }>()
-        ])
+        A.test(A.areEqual<typeof event, { type: "xstate.init" }>())
       }]
     },
     b: {
       entry: (_, event) => {
-        Type.tests([
-          Type.areEqual<typeof event, { type: "FOO" }>()
-        ])
+        A.test(A.areEqual<typeof event, { type: "FOO" }>())
       }
     },
     c: { entry: "a" },
@@ -157,8 +155,8 @@ let testA = createMachine({
     e: { entry: {} }
   },
   entry: [(_, event) => {
-    Type.tests([
-      Type.areEqual<typeof event, { type: "FOO" }>()
+    A.tests([
+      A.areEqual<typeof event, { type: "FOO" }>()
     ])
   }, "a"]
 })

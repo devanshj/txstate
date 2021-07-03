@@ -2,6 +2,7 @@ import { createMachine } from "..";
 
 createMachine({
   initial: "a",
+  context: {},
   id: "bar",
   on: {
     A: "#foo",
@@ -85,6 +86,7 @@ createMachine({
 
 let t0 = createMachine({
   initial: "a",
+  context: {},
   states: { a: {} }
 })
 
@@ -94,6 +96,7 @@ t0.config.initial === ".a"
 
 createMachine({
   initial: { target: "a" },
+  context: {},
   states: { a: {} }
 })
 

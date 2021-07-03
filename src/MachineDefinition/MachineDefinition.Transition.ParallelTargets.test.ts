@@ -3,6 +3,7 @@ import { createMachine } from "..";
 createMachine({
   id: "settings",
   type: "parallel",
+  context: {},
   states: {
     mode: {
       initial: "active",

@@ -433,8 +433,8 @@ namespace MachineDefinition {
             _WithRoot<O.Assert<States[S]>, ReferencePathString.Append<PathString, S.Assert<S>>>
         }[keyof States]
 
-    Type.tests([
-      Type.areEqual<
+    A.tests([
+      A.areEqual<
         IdMap.WithRoot<{ id: "root", states: {
           a: { states: { a1: {}, a2: {} } },
           b: { states: { b1: {}, b2: { id: "bar" } } }
