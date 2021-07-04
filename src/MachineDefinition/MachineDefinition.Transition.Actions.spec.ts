@@ -52,44 +52,49 @@ let t0 = createMachine({
   } 
 })
 
-t0.config.states.a.on.A.actions[0].type === "foo"
-// @ts-expect-error
-t0.config.states.a.on.A.actions[0].type === ""
+A.tests([
+  A.areEqual<typeof t0.config.states.a.on.A.actions[0]["type"], "foo">(),
 
-let t1 = t0.config.states.a.on.A.actions[0].exec("TODO", { type: "A", foo: 1 })
-A.test(A.areEqual<typeof t1, "A.actions.Called">())
-// @ts-expect-error
-t0.config.states.a.on.A.actions[0].exec()
+  A.areEqual<
+    typeof t0.config.states.a.on.A.actions[0]["exec"],
+    (c: "TODO", e: { type: "A", foo: number }) => "A.actions.Called"
+  >(),
 
-t0.config.states.a.on.A.actions[0].bar === 1
-// @ts-expect-error
-t0.config.states.a.on.A.actions[0].bar === ""
+  A.areEqual<
+    typeof t0.config.states.a.on.A.actions[0]["bar"],
+    number
+  >(),
 
-t0.config.states.a.on.A.actions[1] === "ha"
-// @ts-expect-error
-t0.config.states.a.on.A.actions[1] === ""
+  A.areEqual<
+    typeof t0.config.states.a.on.A.actions[1],
+    "ha"
+  >(),
 
-t0.config.states.a.on.B.actions === "foo"
-// @ts-expect-error
-t0.config.states.a.on.B.actions === ""
+  A.areEqual<
+    typeof t0.config.states.a.on.B.actions,
+    "foo"
+  >(),
 
-let t2 = t0.config.states.a.on.C.actions("TODO", { type: "C", foo: 1 })
-A.test(A.areEqual<typeof t2, { fooBarBaz: number }>())
-// @ts-expect-error
-t0.config.states.a.on.C.actions()
+  A.areEqual<
+    typeof t0.config.states.a.on.C.actions,
+    (c: "TODO", e: { type: "C", foo: number }) => { fooBarBaz: number }
+  >(),
 
-t0.config.states.a.on.D.actions.type === "foo"
-// @ts-expect-error
-t0.config.states.a.on.D.actions.type === ""
+  A.areEqual<
+    typeof t0.config.states.a.on.D.actions.type,
+    "foo"
+  >(),
 
-let t3 = t0.config.states.a.on.D.actions.exec("TODO", { type: "D", bar: 1 })
-A.test(A.areEqual<typeof t3, void>())
-// @ts-expect-error
-t0.config.states.a.on.D.actions.exec()
+  A.areEqual<
+    typeof t0.config.states.a.on.D.actions.exec,
+    (c: "TODO", e: { type: "D", bar: number }) => void
+  >(),
 
-t0.config.states.a.on.D.actions.bar === 1
-// @ts-expect-error
-t0.config.states.a.on.D.actions.bar === ""
+  A.areEqual<
+    typeof t0.config.states.a.on.D.actions.bar,
+    number
+  >()
+])
 
 createMachine({
   initial: "a",
@@ -151,14 +156,15 @@ let t4 = createMachine({
     }
   }
 })
-A.test(A.areEqual<typeof t4.config.states.a.on.X.actions.event, { type: "X" }>())
-// @ts-ignore TODO
-A.test(A.areEqual<typeof t4.config.states.a.on.Y.actions.event, { type: "Z" }>())
-let t5 = t4.config.states.a.on.Z.actions[0].event;
-A.test(A.areEqual<typeof t5, { type: "X" }>())
-A.test(A.areEqual<typeof t4.config.states.a.on.Z.actions[1], "ha">())
-let t51 = t4.config.states.a.on.W.actions[0].event;
-A.test(A.areEqual<typeof t51, { type: "X" }>())
+
+A.tests([
+  A.areEqual<typeof t4.config.states.a.on.X.actions.event, { type: "X" }>(),
+  // @ts-ignore TODO
+  A.areEqual<typeof t4.config.states.a.on.Y.actions.event, { type: "Z" }>(),
+  A.areEqual<typeof t4.config.states.a.on.Z.actions[0]["event"], { type: "X" }>(),
+  A.areEqual<typeof t4.config.states.a.on.Z.actions[1], "ha">(),
+  A.areEqual<typeof t4.config.states.a.on.W.actions[0]["event"], { type: "X" }>()
+])
 
 
 createMachine({
