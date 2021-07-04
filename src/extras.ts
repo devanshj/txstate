@@ -4,7 +4,7 @@ export namespace O {
   export type KeyWithValue<O, V> =
     { [K in keyof O]: O[K] extends V ? K : never }[keyof O]
 
-  export type Mergify<T extends object> =
+  export type Mergify<T> =
     { [K in keyof T]: T[K] }
 
   export type Update<A, B> =

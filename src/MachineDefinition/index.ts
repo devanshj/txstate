@@ -1,4 +1,4 @@
-import { O, A, U, L, B, Type, S, F } from "../extras";
+import { O, A, U, L, B, S, F } from "../extras";
 import Machine from "../Machine";
 import { ReferencePathString } from "../universal";
 

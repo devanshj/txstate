@@ -1,4 +1,4 @@
-import { A, O, L, B, Type, S, N } from "./extras";
+import { A, O, L, B, S, N } from "./extras";
 import MachineDefinition from "./MachineDefinition";
 
 export namespace ReferencePathString {
