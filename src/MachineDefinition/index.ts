@@ -160,6 +160,7 @@ namespace MachineDefinition {
         , meta?: unknown
         , strict?: boolean
         , history?: "shallow" | "deep" | boolean
+        , key?: S.InferNarrowest<A.Get<Self, "key">>
         }
 
     export type Desugar<N, R> =

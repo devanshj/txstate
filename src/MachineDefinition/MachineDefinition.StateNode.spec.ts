@@ -1,4 +1,5 @@
 import { createMachine, createSchema } from "..";
+import { A } from "../extras";
 
 createMachine({
   initial: "a",
@@ -133,3 +134,14 @@ createMachine({
 createMachine({
   context: () => ({ foo: 1 })
 })
+
+let t0 = createMachine({
+  context: {},
+  initial: "a",
+  states: {
+    a: {
+      key: "foo"
+    }
+  }
+})
+A.test(A.areEqual<typeof t0.config.states.a.key, "foo">())
