@@ -475,15 +475,16 @@ namespace MachineDefinition {
           Machine.Event.ForEntry.OfWithStateNodePath<
             Definition, Precomputed, StateNodePath
           > :
-        UniversalEvent 
+        UniversalEvent,
+      Context = Machine.Context.Of<Definition, Precomputed>
     > =
       | [ | S.InferNarrowest<A.Get<Self, 0>>
           | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
               Definition, Precomputed,
-              ((context: "TODO", event: Event) => unknown)
+              ((context: Context, event: Event) => unknown)
             >
           | ( { type: S.InferNarrowest<A.Get<Self, [0, "type"]>>
-              , exec?: (context: "TODO", event: Event) => unknown
+              , exec?: (context: Context, event: Event) => unknown
               }
             & { [_ in string]: unknown }
             )
@@ -493,10 +494,10 @@ namespace MachineDefinition {
                 | S.InferNarrowest<Self[K]>
                 | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
                     Definition, Precomputed,
-                    ((context: "TODO", event: Event) => unknown)
+                    ((context: Context, event: Event) => unknown)
                   >
                 | ( { type: S.InferNarrowest<A.Get<Self[K], "type">>
-                    , exec?: (context: "TODO", event: Event) => unknown
+                    , exec?: (context: Context, event: Event) => unknown
                     }
                   & { [_ in string]: unknown }
                   )
@@ -505,10 +506,10 @@ namespace MachineDefinition {
       | S.InferNarrowest<Self>
       | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
           Definition, Precomputed,
-          ((context: "TODO", event: Event) => unknown)
+          ((context: Context, event: Event) => unknown)
         >
       | ( { type: S.InferNarrowest<A.Get<Self, "type">>
-          , exec?: (context: "TODO", event: Event) => unknown
+          , exec?: (context: Context, event: Event) => unknown
           }
         & { [_ in U.Exclude<keyof Self, "type" | "exec">]: unknown }
         )

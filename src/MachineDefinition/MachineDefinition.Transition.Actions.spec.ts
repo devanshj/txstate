@@ -57,7 +57,7 @@ A.tests([
 
   A.areEqual<
     typeof t0.config.states.a.on.A.actions[0]["exec"],
-    (c: "TODO", e: { type: "A", foo: number }) => "A.actions.Called"
+    (c: {}, e: { type: "A", foo: number }) => "A.actions.Called"
   >(),
 
   A.areEqual<
@@ -77,7 +77,7 @@ A.tests([
 
   A.areEqual<
     typeof t0.config.states.a.on.C.actions,
-    (c: "TODO", e: { type: "C", foo: number }) => { fooBarBaz: number }
+    (c: {}, e: { type: "C", foo: number }) => { fooBarBaz: number }
   >(),
 
   A.areEqual<
@@ -87,7 +87,7 @@ A.tests([
 
   A.areEqual<
     typeof t0.config.states.a.on.D.actions.exec,
-    (c: "TODO", e: { type: "D", bar: number }) => void
+    (c: {}, e: { type: "D", bar: number }) => void
   >(),
 
   A.areEqual<
