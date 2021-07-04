@@ -82,6 +82,10 @@ export namespace L {
     export type Out = typeof Out;
   }
 
+  export type Get<T, I> =
+    N.IsWhole<I> extends true
+      ? A.Get<T, I>
+      : A.Get<T, N.Add<I, A.Get<T, "length">>>
 }
 
 export namespace A {
@@ -223,8 +227,68 @@ export namespace S {
 export namespace N {
   export type Assert<T> = A.Cast<T, A.Number>;
   export type PositiveIntegers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
-  export type PositiveIntegersUnshiftedTwice = L.Unshift<L.Unshift<PositiveIntegers, 0>, -1>
+  export type NegativeIntegers = [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10, -11, -12, -13, -14, -15, -16, -17, -18, -19, -20]
+  export type PositiveIntegersUnshifted = L.Unshift<PositiveIntegers, 0>
+  export type PositiveIntegersUnshiftedTwice = L.Unshift<PositiveIntegersUnshifted, -1>
+  export type NegativeIntegersUnshifted = L.Unshift<NegativeIntegers, 0>
+  export type NegativeIntegersUnshiftedTwice = L.Unshift<NegativeIntegersUnshifted, 1>
   
+  export type IsWhole<N> = B.Not<IsNegative<N>>
+  export type IsNegative<N> = S.DoesStartWith<N.ToString<N>, "-">
+  export type Negate<N> =
+    N extends 0 ? 0 :
+    IsNegative<N> extends true
+      ? N.FromString<S.Shifted<N.ToString<N>>>
+      : N.FromString<`-${N.Assert<N>}`>;
+  
+  export type ToString<X> = `${N.Assert<X>}`
+  export type FromString<S> =
+    S extends "0" ? 0 :
+    S.DoesStartWith<S, "-"> extends false
+      ? { [I in keyof PositiveIntegersUnshifted]:
+            I extends S ? PositiveIntegersUnshifted[I] : never
+        }[keyof PositiveIntegersUnshifted]
+      : { [I in keyof NegativeIntegersUnshifted]:
+            `-${I}` extends S ? NegativeIntegersUnshifted[I] : never
+        }[keyof NegativeIntegersUnshifted]
+
+
+  export type Increment<N> =
+    IsNegative<N> extends false
+      ? A.Get<PositiveIntegers, N>
+      : A.Get<NegativeIntegersUnshiftedTwice, N.Negate<N>>
+
   export type Decrement<N> =
-    A.Get<PositiveIntegersUnshiftedTwice, N>
+    IsNegative<N> extends false
+      ? A.Get<PositiveIntegersUnshiftedTwice, N>
+      : A.Get<NegativeIntegers, N.Negate<N>>
+
+  export type Add<A, B> =
+   B extends 0 ? A :
+   A extends 0 ? B :
+   [ IsNegative<A> extends true ? "-" : "+"
+   , IsNegative<B> extends true ? "-" : "+"
+   ] extends infer X
+      ? X extends ["+", "+"] ? Add<Increment<A>, Decrement<B>> :
+        X extends ["-", "-"] ? Add<Increment<A>, Decrement<B>> :
+        X extends ["+", "-"] ? Add<Decrement<A>, Increment<B>> :
+        X extends ["-", "+"] ? Add<Increment<A>, Decrement<B>> :
+        never :
+  never
+
+  export type Subtract<A, B> =
+    Add<A, Negate<B>>;
+    
+  export type IsLessThan<A, B> =
+    [A, B] extends [0, 0] ? false :
+    A extends 0 ? B.Not<IsNegative<B>> :
+    B extends 0 ? IsNegative<A> :
+    IsLessThan<Subtract<A, B>, 0>
+
+  export type IsGreaterThanOrEqual<A, B> =
+    B.Not<IsLessThan<A, B>>
+
+  export type IsGreaterThan<A, B> =
+    A extends B ? false :
+    IsGreaterThanOrEqual<A, B>
 }

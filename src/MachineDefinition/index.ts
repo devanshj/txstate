@@ -126,7 +126,7 @@ namespace MachineDefinition {
           Type extends "parallel" ?
             { initial?: undefined } :
           { initial:
-              Transition.OfWithStateNodePathAndEventType<
+              Transition.OfWithStateNodePath<
                 Definition, L.Pushed<Path, "initial">, Precomputed,
                 Path, A.String
               >
@@ -139,20 +139,19 @@ namespace MachineDefinition {
                     [ A.DoesExtend<[EventIdentifierSpec], [never]>
                     , A.DoesExtend<EventIdentifier, EventIdentifierSpec>
                     ]> extends true
-                      ? Transition.OfWithStateNodePathAndEventType<
+                      ? Transition.OfWithStateNodePath<
                           Definition,
                           L.Concat<Path, ["on", EventIdentifier]>,
                           Precomputed,
-                          Path,
-                          EventIdentifier
+                          Path
                         >
                       : `Error: ${EventIdentifier} is not included in schema.event`
                   : "Error: only string identifier allowed"
             }
         , always?:
-            Transition.OfWithStateNodePathAndEventType<
+            Transition.OfWithStateNodePath<
               Definition, L.Pushed<Path, "always">, Precomputed,
-              Path, A.String
+              Path
             >
         , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
@@ -206,43 +205,41 @@ namespace MachineDefinition {
 
   export namespace Transition {
 
-    export type OfWithStateNodePathAndEventType<
+    export type OfWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
-      EventType,
       Self = A.Get<Definition, Path>,
       IsInitial = A.DoesExtend<L.Pop<Path>, "initial">
     > =
       IsInitial extends true
         ? | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
-          | TargetAndExtrasWithStateNodePathAndEventType<
-              Definition, Path, Precomputed, StateNodePath, EventType
+          | TargetAndExtrasWithStateNodePath<
+              Definition, Path, Precomputed, StateNodePath
             > :
-      | TargetAndExtrasWithStateNodePathAndEventType<
-          Definition, Path, Precomputed, StateNodePath, EventType
+      | TargetAndExtrasWithStateNodePath<
+          Definition, Path, Precomputed, StateNodePath
         >
       | ( Self extends { target: any } ? never :
           | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
           | ( Self extends A.Tuple
               ? { [K in keyof Self]:
-                    TargetAndExtrasWithStateNodePathAndEventType<
-                      Definition, L.Pushed<Path, K>, Precomputed, StateNodePath, EventType
+                    TargetAndExtrasWithStateNodePath<
+                      Definition, L.Pushed<Path, K>, Precomputed, StateNodePath
                     >
                 }
-              : A.Tuple<TargetAndExtrasWithStateNodePathAndEventType<
-                  Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, EventType, true
+              : A.Tuple<TargetAndExtrasWithStateNodePath<
+                  Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, true
                 >>
             )
         )
 
-    type TargetAndExtrasWithStateNodePathAndEventType<
+    type TargetAndExtrasWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
-      EventType,
       NoChecks = false
     > =
       { target:
@@ -253,9 +250,9 @@ namespace MachineDefinition {
             StateNodePath,
             NoChecks
           >
-      , actions?: Action.OfWithStateNodePathAndEventType<
+      , actions?: Action.OfWithStateNodePath<
           Definition, L.Pushed<Path, "actions">, Precomputed,
-          StateNodePath, EventType
+          StateNodePath
         >
       , internal?: boolean
       }
@@ -483,12 +480,12 @@ namespace MachineDefinition {
   }
 
   export namespace Action {
-    export type OfWithStateNodePathAndEventType<
+    export type OfWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
-      EventType,
+      EventType = L.Get<Path, -3> extends "on" ? L.Get<Path, -2> : A.String,
       Self = A.Get<Definition, Path>,
       Event = U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: EventType }>
     > =
