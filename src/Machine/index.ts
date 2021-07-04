@@ -205,7 +205,7 @@ namespace Machine {
     export type Of<
       Definition,
       Precomputed,
-      EventSchema = EventSchema.Of<Definition>
+      EventSchema = Definition extends { schema?: { events?: infer E } } ? E : undefined
     > =
       EventSchema extends undefined
         ? WithRoot<Definition>
@@ -222,11 +222,6 @@ namespace Machine {
               WithRoot<A.Get<Root, "states">[S]>
           }[keyof A.Get<Root, "states">]
         )
-  }
-
-  export namespace EventSchema {
-    export type Of<Definition> =
-      Definition extends { schema?: { events?: infer E } } ? E : undefined
   }
 
   export namespace Context {
