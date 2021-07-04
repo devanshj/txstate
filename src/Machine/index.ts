@@ -15,75 +15,108 @@ namespace Machine {
       }
 
 
-  export namespace EntryEventForStateNode {
+  export namespace Event {
     export type Of<
       Definition,
       Precomputed,
-      StateNodeReferencePathString,
-      DesugaredDefinition = MachineDefinition.Precomputed.Get<Precomputed, "DesugaredDefinition">
+      EventSchema = Schema.Of<Definition, Precomputed>
     > =
-      WithRoot<DesugaredDefinition, Precomputed, StateNodeReferencePathString, "">
-  
-    type WithRoot<
-      DesugaredDefinition,
-      Precomputed,
-      StateNodeReferencePathString,
-      RootReferencePathString,
+      EventSchema extends undefined
+        ? WithRoot<Definition>
+        : EventSchema
 
-      Root = ReferencePathString.ToNode<RootReferencePathString, DesugaredDefinition>,
-      On = A.Get<Root, "on">,
-      Always = A.Get<Root, "always">,
-      States = A.Get<Root, "states">,
-      EventSchema = A.Get<DesugaredDefinition, ["schema", "events"]>,
-      InitialState = MachineDefinition.Precomputed.Get<Precomputed, "InitialStateNodeReferencePathString">
-    > =
-      | { [E in keyof On]: 
-          A.Get<On, [E, number]> extends infer T
-            ? [T] extends [never] ? never :
-              T extends any
-                ? ( L.IncludesSubtype<
-                      ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                        DesugaredDefinition, Precomputed, A.Get<T, "target">, RootReferencePathString
-                      >,
-                      | StateNodeReferencePathString 
-                      | ( A.Get<T, "internal"> extends false
-                            ? ReferencePathString.Child<StateNodeReferencePathString, DesugaredDefinition>
-                            : never
-                        )
-                    > extends true 
-                      ? EventSchema extends undefined ? { type: E } :
-                        U.Extract<EventSchema, { type: E }>
-                      : never
-                  )
-                : never
-            : never
-        }[keyof On]
-      | ( A.Get<Always, number> extends infer T
-            ? [T] extends [never] ? never :
-              L.IncludesSubtype<
-                ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                  DesugaredDefinition, Precomputed, A.Get<T, "target">, RootReferencePathString
-                >,
-                | StateNodeReferencePathString
-                | ( A.Get<T, "internal"> extends false
-                      ? ReferencePathString.Child<StateNodeReferencePathString, DesugaredDefinition>
-                      : never
-                  )
-              > extends true
-                ? Of<DesugaredDefinition, Precomputed, RootReferencePathString>
-                : never
+    type WithRoot<Root> =
+      | ( [keyof A.Get<Root, "on">] extends [never] ? never :
+          keyof A.Get<Root, "on"> extends infer E
+            ? E extends any ? { type: E } : never
             : never
         )
-      | { [C in keyof States]:
-            WithRoot<
-              DesugaredDefinition, Precomputed, StateNodeReferencePathString,
-              ReferencePathString.Append<RootReferencePathString, C>
-            >
-        }[keyof States]
-      | ( StateNodeReferencePathString extends InitialState
-            ? { type: "xstate.init" }
-            : never
+      | ( [keyof A.Get<Root, "states">] extends [never] ? never :
+          { [S in keyof A.Get<Root, "states">]:
+              WithRoot<A.Get<Root, "states">[S]>
+          }[keyof A.Get<Root, "states">]
         )
+
+    export namespace Schema {
+      export type Of<Definition, Precomputed> =
+        Definition extends { schema?: { events?: infer E } } ? E : undefined
+    }
+
+    export namespace ForEntry {
+      export type OfWithStateNodePath<
+        Definition,
+        Precomputed,
+        StateNodePath,
+        DesugaredDefinition = MachineDefinition.Precomputed.Get<Precomputed, "DesugaredDefinition">
+      > =
+        WithRootPath<DesugaredDefinition, Precomputed, StateNodePath, []>
+    
+      type WithRootPath<
+        DesugaredDefinition,
+        Precomputed,
+        StateNodePath,
+        RootPath,
+
+        
+        Root = A.Get<DesugaredDefinition, RootPath>,
+        StateNodeReferencePathString = ReferencePathString.FromDefinitionPath<StateNodePath>,
+        RootReferencePathString = ReferencePathString.FromDefinitionPath<RootPath>,
+        On = A.Get<Root, "on">,
+        Always = A.Get<Root, "always">,
+        States = A.Get<Root, "states">,
+        EventSchema = Schema.Of<DesugaredDefinition, Precomputed>,
+        InitialState = MachineDefinition.Precomputed.Get<Precomputed, "InitialStateNodeReferencePathString">
+      > =
+        | { [E in keyof On]: 
+            A.Get<On, [E, number]> extends infer T
+              ? [T] extends [never] ? never :
+                T extends any
+                  ? ( L.IncludesSubtype<
+                        ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
+                          DesugaredDefinition, Precomputed, A.Get<T, "target">, RootReferencePathString
+                        >,
+                        | StateNodeReferencePathString 
+                        | ( A.Get<T, "internal"> extends false
+                              ? ReferencePathString.Child<StateNodeReferencePathString, DesugaredDefinition>
+                              : never
+                          )
+                      > extends true 
+                        ? EventSchema extends undefined ? { type: E } :
+                          U.Extract<EventSchema, { type: E }>
+                        : never
+                    )
+                  : never
+              : never
+          }[keyof On]
+        | ( A.Get<Always, number> extends infer T
+              ? [T] extends [never] ? never :
+                L.IncludesSubtype<
+                  ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
+                    DesugaredDefinition, Precomputed, A.Get<T, "target">, RootReferencePathString
+                  >,
+                  | StateNodeReferencePathString
+                  | ( A.Get<T, "internal"> extends false
+                        ? ReferencePathString.Child<StateNodeReferencePathString, DesugaredDefinition>
+                        : never
+                    )
+                > extends true
+                  ? OfWithStateNodePath<DesugaredDefinition, Precomputed, RootPath>
+                  : never
+              : never
+          )
+        | ( [keyof States] extends [never] ? never :
+            { [C in keyof States]:
+                WithRootPath<
+                  DesugaredDefinition, Precomputed, StateNodePath,
+                  L.Concat<RootPath, ["states", C]>
+                >
+            }[keyof States]
+          )
+        | ( StateNodeReferencePathString extends InitialState
+              ? { type: "xstate.init" }
+              : never
+          )
+    }
   }
 
   export namespace InitialStateNodeReferencePathString {
@@ -201,28 +234,7 @@ namespace Machine {
     }
   }
 
-  export namespace Event {
-    export type Of<
-      Definition,
-      Precomputed,
-      EventSchema = Definition extends { schema?: { events?: infer E } } ? E : undefined
-    > =
-      EventSchema extends undefined
-        ? WithRoot<Definition>
-        : EventSchema
-
-    type WithRoot<Root> =
-      | ( [keyof A.Get<Root, "on">] extends [never] ? never :
-          keyof A.Get<Root, "on"> extends infer E
-            ? E extends any ? { type: E } : never
-            : never
-        )
-      | ( [keyof A.Get<Root, "states">] extends [never] ? never :
-          { [S in keyof A.Get<Root, "states">]:
-              WithRoot<A.Get<Root, "states">[S]>
-          }[keyof A.Get<Root, "states">]
-        )
-  }
+  
 
   export namespace Context {
     export type Of<

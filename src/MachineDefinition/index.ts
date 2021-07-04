@@ -153,7 +153,10 @@ namespace MachineDefinition {
               Definition, L.Pushed<Path, "always">, Precomputed,
               Path
             >
-        , entry?: Entry.Of<Definition, L.Pushed<Path, "entry">, Precomputed>
+        , entry?:
+            Action.OfWithStateNodePath<
+              Definition, L.Pushed<Path, "entry">, Precomputed, Path
+            >
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , order?: number
         , meta?: unknown
@@ -457,36 +460,22 @@ namespace MachineDefinition {
         : "Ids should be strings"
   }
 
-  export namespace Entry {
-    export type Of<
-      Definition,
-      Path,
-      Precomputed,
-
-      Self = A.Get<Definition, Path>,
-      NodeReferencePathString = ReferencePathString.FromDefinitionPath<L.Popped<Path>>,
-    > =
-      A.TupleOrUnitOfStringLiteralOr<
-        ( context: "TODO"
-        , event: Machine.EntryEventForStateNode.Of<
-            Definition,
-            Precomputed,
-            NodeReferencePathString
-          >
-        ) => void,
-        Self
-      >
-  }
-
   export namespace Action {
     export type OfWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
-      EventType = L.Get<Path, -3> extends "on" ? L.Get<Path, -2> : A.String,
       Self = A.Get<Definition, Path>,
-      Event = U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: EventType }>
+      UniversalEvent = Machine.Event.Of<Definition, Precomputed>,
+      Event =
+        L.Get<Path, -3> extends "on" ?
+          U.Extract<UniversalEvent, { type: L.Get<Path, -2> }> :
+        L.Get<Path, -1> extends "entry" ?
+          Machine.Event.ForEntry.OfWithStateNodePath<
+            Definition, Precomputed, StateNodePath
+          > :
+        UniversalEvent 
     > =
       | [ | S.InferNarrowest<A.Get<Self, 0>>
           | Machine.XstateAction.InferralHint.OfWithAdjacentAction<

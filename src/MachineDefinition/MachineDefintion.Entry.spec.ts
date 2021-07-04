@@ -29,7 +29,6 @@ createMachine({
         b2: {}
       },
       entry: (_, event) => {
-        event.type
         A.test(A.areEqual<
           typeof event,
           | { type: "FOO", x: number }
