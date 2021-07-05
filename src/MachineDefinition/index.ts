@@ -160,11 +160,11 @@ namespace MachineDefinition {
               Path
             >
         , entry?:
-            Action.OfWithStateNodePath<
+            Execable.OfWithStateNodePath<
               Definition, L.Pushed<Path, "entry">, Precomputed, Path
             >
         , exit?:
-            Action.OfWithStateNodePath<
+            Execable.OfWithStateNodePath<
               Definition, L.Pushed<Path, "exit">, Precomputed, Path
             >
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
@@ -193,25 +193,10 @@ namespace MachineDefinition {
           keyof A.Get<N, "initial"> extends undefined ? "parallel" :
           "compound"
         >
-      , initial:
-          A.Get<N, "initial"> extends infer Initial
-            ? Initial extends undefined ? undefined : 
-              Initial extends A.Object ?
-                { target: [ReferencePathString.Append<R, A.Get<Initial, "target">>]
-                , actions:
-                    Action.Desugar<
-                      A.Get<Initial, "actions">,
-                      ReferencePathString.Append<R, "initial.actions">
-                    >
-                } :
-              { target: [ReferencePathString.Append<R, Initial>]
-              , actions: []
-              }
-            : never
+      , initial: Transition.Desugar<A.Get<N, "initial">, ReferencePathString.Append<R, "initial">>
       , states: A.Get<N, "states", {}> extends infer States
           ? { [S in keyof States]: Desugar<States[S], ReferencePathString.Append<R, S>> }
           : never
-      , id: A.Get<N, "id">
       , on: A.Get<N, "on", {}> extends infer On
           ? { [K in keyof On]:
                 Transition.Desugar<
@@ -221,10 +206,15 @@ namespace MachineDefinition {
             }
           : never
       , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
-      , entry: Action.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">>
-      , exit: Action.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">>
+      , onDone: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "onDone">>
+      , entry: Execable.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">, "actions">
+      , exit: Execable.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">, "actions">
+      , id: A.Get<N, "id">
+      , order: A.Get<N, "order">
+      , meta: A.Get<N, "meta">
+      , strict: A.Get<N, "strict">
       , history: A.Get<N, "type"> extends "history" ? A.Get<N, "history", "shallow"> : undefined
-      , target: A.Get<N, "target">
+      , data: A.Get<N, "data">
       }
   }
 
@@ -275,7 +265,7 @@ namespace MachineDefinition {
             StateNodePath,
             NoChecks
           >
-      , actions?: Action.OfWithStateNodePath<
+      , actions?: Execable.OfWithStateNodePath<
           Definition, L.Pushed<Path, "actions">, Precomputed,
           StateNodePath
         >
@@ -338,7 +328,7 @@ namespace MachineDefinition {
                     : never
               , internal: A.Get<Ts[K], "internal">
               , guard: A.Get<Ts[K], "guard", () => true>
-              , actions: Action.Desugar<A.Get<Ts[K], "actions">, R>
+              , actions: Execable.Desugar<A.Get<Ts[K], "actions">, R, "actions">
               , __referencePath: ReferencePathString.Append<R, K>
               } extends infer Target
                 ? O.Update<Target, {
@@ -483,7 +473,7 @@ namespace MachineDefinition {
         : "Ids should be strings"
   }
 
-  export namespace Action {
+  export namespace Execable {
     export type OfWithStateNodePath<
       Definition,
       Path,
@@ -547,7 +537,7 @@ namespace MachineDefinition {
         )
 
 
-    export type Desugar<A, R, DefaultActionType = "actions"> =
+    export type Desugar<A, R, DefaultType> =
       A extends undefined ? [] :
       (A extends any[] ? A : [A]) extends infer A
         ? { [I in keyof A]:
@@ -555,8 +545,8 @@ namespace MachineDefinition {
               A[I] extends A.Function ? {
                 type:
                   A[I] extends { name: infer X }
-                    ? string extends X ? DefaultActionType : X
-                    : DefaultActionType,
+                    ? string extends X ? DefaultType : X
+                    : DefaultType,
                 exec: A[I]
               } :
               A[I]
