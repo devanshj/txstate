@@ -128,6 +128,26 @@ namespace Machine {
         Machine.Event.Of<Definition, Precomputed>
     }
 
+    export namespace ForDone {
+      export type OfWithStateNodePath<
+        Definition,
+        Precomputed,
+        StateNodePath,
+        Data = A.Get<Definition, L.Pushed<StateNodePath, "data">>
+      > =
+        & Machine.Event.Of<Definition, Precomputed> // TODO
+        & { data:
+              Data extends undefined ? undefined :
+              Data extends A.Function ? F.Called<Data> :
+              { [K in keyof Data]:
+                  Data[K] extends A.Function
+                    ? F.Called<Data[K]>
+                    : Data[K]
+              }
+          , toString: () => string
+          }
+    }
+
   }
 
   export namespace InitialStateNodeReferencePathString {

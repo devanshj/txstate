@@ -154,6 +154,11 @@ namespace MachineDefinition {
               Definition, L.Pushed<Path, "always">, Precomputed,
               Path
             >
+        , onDone?:
+            Transition.OfWithStateNodePath<
+              Definition, L.Pushed<Path, "onDone">, Precomputed,
+              Path
+            >
         , entry?:
             Action.OfWithStateNodePath<
               Definition, L.Pushed<Path, "entry">, Precomputed, Path
@@ -485,6 +490,7 @@ namespace MachineDefinition {
       Precomputed,
       StateNodePath,
       Self = A.Get<Definition, Path>,
+      StateNode = A.Get<Definition, StateNodePath>,
       UniversalEvent = Machine.Event.Of<Definition, Precomputed>,
       Event =
         L.Get<Path, -3> extends "on" ?
@@ -495,6 +501,10 @@ namespace MachineDefinition {
           > :
         L.Get<Path, -1> extends "exit" ?
           Machine.Event.ForExit.OfWithStateNodePath<
+            Definition, Precomputed, StateNodePath
+          > :
+        L.Get<Path, -2> extends "onDone" ?
+          Machine.Event.ForDone.OfWithStateNodePath<
             Definition, Precomputed, StateNodePath
           > :
         UniversalEvent,

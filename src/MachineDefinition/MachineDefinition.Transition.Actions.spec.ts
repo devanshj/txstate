@@ -206,3 +206,29 @@ createMachine({
     }
   }
 })
+
+createMachine({
+  context: {},
+  initial: "a",
+  states: {
+    a: {
+      type: "final",
+      data: { bar: () => 10 },
+      onDone: {
+        target: "a",
+        actions: (c, e) => {
+          A.tests([
+            A.areEqual<
+              typeof e.data,
+              { bar: number }
+            >()
+          ])
+          let x: string = e.toString()
+        }
+      },
+      on: {
+        X: "a"
+      }
+    }
+  }
+})
