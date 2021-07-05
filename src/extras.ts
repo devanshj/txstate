@@ -94,10 +94,10 @@ export namespace A {
   export type Tuple<T = any> = T[] | [T];
   export type TupleOrUnit<T> = T | Tuple<T>;
 
-  export type TupleOrUnitOfStringLiteralOr<T, Self> =
-    | [S.InferNarrowest<A.Get<Self, 0>> | T]
-    | { [K in keyof Self]: S.InferNarrowest<Self[K]> | T }
-    | (S.InferNarrowest<Self> | T)
+  export type TupleOrUnitOfStringLiteral<Self> =
+    | [S.InferNarrowest<A.Get<Self, 0>>]
+    | { [K in keyof Self]: S.InferNarrowest<Self[K]> }
+    | (S.InferNarrowest<Self>)
   
   export type Object = object;
   export type String = string;

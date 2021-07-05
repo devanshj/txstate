@@ -190,3 +190,17 @@ createMachine({
     }
   }
 })
+
+let t1 = createMachine({
+  context: {},
+  initial: "a",
+  states: {
+    a: {
+      tags: ["foo", "bar"]
+    }
+  }
+})
+A.test(A.areEqual<
+  typeof t1.config.states.a.tags,
+  ["foo", "bar"]
+>())

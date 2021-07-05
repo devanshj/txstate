@@ -195,6 +195,8 @@ namespace MachineDefinition {
                     )
                   | U.Exclude<A.Universal, A.Function>
               }
+        , tags?:
+            A.TupleOrUnitOfStringLiteral<A.Get<Self, "tags">>
         }
 
     export type Desugar<N, R> =
