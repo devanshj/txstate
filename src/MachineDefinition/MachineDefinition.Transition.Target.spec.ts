@@ -101,6 +101,7 @@ createMachine({
 })
 
 createMachine({
+  context: {},
   initial: {
     // @ts-expect-error
     target: "x"
@@ -127,6 +128,7 @@ createMachine({
 })
 
 createMachine({
+  context: {},
   initial: "a",
   states: {
     a: {
