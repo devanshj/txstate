@@ -181,7 +181,7 @@ namespace MachineDefinition {
                   Definition, L.Pushed<Path, "target">, Precomputed,
                   Path
                 >
-              : "Error: history can be only set for history nodes"
+              : "Error: target can be only set for history nodes"
         , data?:
             A.DoesExtend<Type, "final"> extends false
               ? "Error: data can be only set for final nodes" :
