@@ -171,7 +171,17 @@ namespace MachineDefinition {
         , order?: number
         , meta?: unknown
         , strict?: boolean
-        , history?: "shallow" | "deep" | boolean
+        , history?:
+            Type extends "history"
+              ? "shallow" | "deep" | boolean
+              : "Error: history can be only set for history nodes"
+        , target?:
+            Type extends "history"
+              ? Transition.TargetWithStateNodePath<
+                  Definition, L.Pushed<Path, "target">, Precomputed,
+                  Path
+                >
+              : "Error: history can be only set for history nodes"
         , data?:
             A.DoesExtend<Type, "final"> extends false
               ? "Error: data can be only set for final nodes" :
@@ -214,6 +224,7 @@ namespace MachineDefinition {
       , meta: A.Get<N, "meta">
       , strict: A.Get<N, "strict">
       , history: A.Get<N, "type"> extends "history" ? A.Get<N, "history", "shallow"> : undefined
+      , target: A.Get<N, "target">
       , data: A.Get<N, "data">
       }
   }
@@ -250,7 +261,7 @@ namespace MachineDefinition {
             )
         )
 
-    type TargetAndExtrasWithStateNodePath<
+    export type TargetAndExtrasWithStateNodePath<
       Definition,
       Path,
       Precomputed,
@@ -272,7 +283,7 @@ namespace MachineDefinition {
       , internal?: boolean
       }
 
-    type TargetWithStateNodePath<
+    export type TargetWithStateNodePath<
       Definition,
       Path,
       Precomputed,
