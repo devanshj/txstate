@@ -217,8 +217,8 @@ namespace MachineDefinition {
           : never
       , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
       , onDone: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "onDone">>
-      , entry: Execable.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">, "actions">
-      , exit: Execable.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">, "actions">
+      , entry: Execable.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">, "entry">
+      , exit: Execable.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">, "exit">
       , id: A.Get<N, "id">
       , order: A.Get<N, "order">
       , meta: A.Get<N, "meta">
