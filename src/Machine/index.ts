@@ -117,6 +117,17 @@ namespace Machine {
               : never
           )
     }
+
+    export namespace ForExit {
+      export type OfWithStateNodePath<
+        Definition,
+        Precomputed,
+        StateNodePath
+      > =
+        // TODO
+        Machine.Event.Of<Definition, Precomputed>
+    }
+
   }
 
   export namespace InitialStateNodeReferencePathString {

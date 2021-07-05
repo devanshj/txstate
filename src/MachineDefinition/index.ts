@@ -157,6 +157,10 @@ namespace MachineDefinition {
             Action.OfWithStateNodePath<
               Definition, L.Pushed<Path, "entry">, Precomputed, Path
             >
+        , exit?:
+            Action.OfWithStateNodePath<
+              Definition, L.Pushed<Path, "exit">, Precomputed, Path
+            >
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , order?: number
         , meta?: unknown
@@ -473,6 +477,10 @@ namespace MachineDefinition {
           U.Extract<UniversalEvent, { type: L.Get<Path, -2> }> :
         L.Get<Path, -1> extends "entry" ?
           Machine.Event.ForEntry.OfWithStateNodePath<
+            Definition, Precomputed, StateNodePath
+          > :
+        L.Get<Path, -1> extends "exit" ?
+          Machine.Event.ForExit.OfWithStateNodePath<
             Definition, Precomputed, StateNodePath
           > :
         UniversalEvent,
