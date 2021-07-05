@@ -100,24 +100,15 @@ namespace MachineDefinition {
       States = A.Get<Self, "states">,
       Type = A.Get<Self, "type", "compound">,
       On = A.Get<Self, "on">,
-      EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>
+      EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>,
+      Data = A.Get<Self, "data">
     > =
       & { type?:
-            | "compound"
-            | "parallel"
-            | "final"
-            | "history"
-            | "atomic"
-        , states?:
-            Type extends "atomic"
-              ? "Error: atomic state node can't have states property"
-              : { [StateIdentifier in keyof States]:
-                    StateIdentifier extends A.String
-                      ? S.DoesContain<StateIdentifier, "."> extends B.True
-                          ? `Error: identifiers can't have '.' as it's use as a path delimiter`
-                          : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Precomputed>
-                      : `Error: only string identifiers allowed`
-                }
+          | "compound"
+          | "parallel"
+          | "final"
+          | "history"
+          | "atomic"
         }
       & ( Type extends "atomic" ?
             { initial?: "Error: atomic state node can't have initial property" } :
@@ -132,7 +123,17 @@ namespace MachineDefinition {
               >
           }
         )
-      & { on?: 
+      & { states?:
+            Type extends "atomic"
+              ? "Error: atomic state node can't have states property"
+              : { [StateIdentifier in keyof States]:
+                    StateIdentifier extends A.String
+                      ? S.DoesContain<StateIdentifier, "."> extends B.True
+                          ? `Error: identifiers can't have '.' as it's use as a path delimiter`
+                          : StateNode.Of<Definition, L.Concat<Path, ["states", StateIdentifier]>, Precomputed>
+                      : `Error: only string identifiers allowed`
+                }
+        , on?: 
             { [EventIdentifier in keyof On]:
                 EventIdentifier extends A.String
                   ? L.Some<
@@ -166,6 +167,19 @@ namespace MachineDefinition {
         , meta?: unknown
         , strict?: boolean
         , history?: "shallow" | "deep" | boolean
+        , data?:
+            A.DoesExtend<Type, "final"> extends false
+              ? "Error: data can be only set for final nodes" :
+            | (( context: Machine.Context.Of<Definition, Precomputed>
+              , event: Machine.Event.Of<Definition, Precomputed>
+              ) => unknown)
+            | { [K in A.String]:
+                  | ( ( context: Machine.Context.Of<Definition, Precomputed>
+                      , event: Machine.Event.Of<Definition, Precomputed>
+                      ) => unknown
+                    )
+                  | U.Exclude<A.Universal, A.Function>
+              }
         }
 
     export type Desugar<N, R> =

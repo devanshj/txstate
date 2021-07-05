@@ -134,3 +134,59 @@ createMachine({
 createMachine({
   context: () => ({ foo: 1 })
 })
+
+let t0 = createMachine({
+  context: { foo: 1 },
+  initial: "a",
+  states: {
+    a: {
+      type: "final",
+      on: {
+        X: "b"
+      },
+      data: (c, e) => {
+        A.tests([
+          A.areEqual<typeof c, { foo: number }>(),
+          A.areEqual<typeof e, { type: "X" }>()
+        ])
+        return "foo" as const
+      }
+    },
+    b: {
+      type: "final",
+      data: {
+        bar: (c, e) => {
+          A.tests([
+            A.areEqual<typeof c, { foo: number }>(),
+            A.areEqual<typeof e, { type: "X" }>()
+          ])
+          return c.foo + 2
+        },
+        x: 100
+      }
+    }
+  }
+})
+A.tests([
+  A.areEqual<
+    typeof t0.config.states.a.data,
+    (c: { foo: number }, e: { type: "X" }) => "foo"
+  >(),
+  A.areEqual<
+    typeof t0.config.states.b.data,
+    { bar: (c: { foo: number }, e: { type: "X" }) => number
+    , x: number
+    }
+  >()
+])
+
+createMachine({
+  context: { foo: 1 },
+  initial: "a",
+  states: {
+    a: {
+      // @ts-expect-error
+      data: { x: 100 }
+    }
+  }
+})
