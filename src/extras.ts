@@ -253,7 +253,7 @@ export namespace N {
             I extends S ? PositiveIntegersUnshifted[I] : never
         }[keyof PositiveIntegersUnshifted]
       : { [I in keyof NegativeIntegersUnshifted]:
-            `-${I}` extends S ? NegativeIntegersUnshifted[I] : never
+            `-${N.Assert<I>}` extends S ? NegativeIntegersUnshifted[I] : never
         }[keyof NegativeIntegersUnshifted]
 
 

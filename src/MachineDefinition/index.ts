@@ -159,6 +159,7 @@ namespace MachineDefinition {
               Definition, L.Pushed<Path, "onDone">, Precomputed,
               Path
             >
+        , _?: null
         , entry?:
             Execable.OfWithStateNodePath<
               Definition, L.Pushed<Path, "entry">, Precomputed, Path

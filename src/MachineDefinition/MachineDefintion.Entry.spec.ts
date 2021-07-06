@@ -122,6 +122,10 @@ createMachine({
           A.areEqual<typeof event, { type: "X" }>()
         ])
       }
+    },
+    c: {
+      // @\ts-expect-error TODO
+      entry: {}
     }
   },
   on: {
@@ -149,9 +153,7 @@ let testA = createMachine({
       }
     },
     c: { entry: "a" },
-    d: { entry: [] },
-    // TODO @\ts-expect-error
-    e: { entry: {} }
+    d: { entry: [] }
   },
   entry: [(_, event) => {
     A.tests([
@@ -159,6 +161,8 @@ let testA = createMachine({
     ])
   }, "a"]
 })
+/*
+TODO: TS 4.4.0 regression
 testA.config.entry[0]({} as any, {
   type: "FOO"
 })
@@ -182,3 +186,4 @@ testA.config.entry[1] === ""
 testA.config.states.c.entry === "a";
 // @ts-expect-error
 testA.config.states.c.entry === "";
+*/
