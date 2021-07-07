@@ -232,7 +232,18 @@ namespace MachineDefinition {
             }
           : never
       , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
-      , onDone: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "onDone">>
+      , after:
+          A.Get<N, "after"> extends infer After
+            ? After extends A.Tuple
+                ? Transition.Desugar<After, ReferencePathString.Append<R, "after">>
+                : { [K in keyof After]:
+                      Transition.Desugar<
+                        After,
+                        ReferencePathString.Append<R, `after.${A.Cast<K, A.Number | A.String>}`>
+                      >
+                  }
+            : never
+      , onDone: Transition .Desugar<A.Get<N, "onDone">, ReferencePathString.Append<R, "onDone">>
       , entry: Execable.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">, "entry">
       , exit: Execable.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">, "exit">
       , id: A.Get<N, "id">
@@ -242,6 +253,7 @@ namespace MachineDefinition {
       , history: A.Get<N, "type"> extends "history" ? A.Get<N, "history", "shallow"> : undefined
       , target: A.Get<N, "target">
       , data: A.Get<N, "data">
+      , tags: A.Get<N, "tags">
       }
   }
 
