@@ -206,3 +206,45 @@ A.test(A.areEqual<
   typeof t1.config.states.a.tags,
   ["foo", "bar"]
 >())
+
+let t2 = createMachine({
+  context: { foo: 1 },
+  initial: "a",
+  states: {
+    a: {
+      after: [
+        { target: "a", delay: 100 },
+        { // @ts-ignore TODO unexpected error
+          target: "a",
+          delay: (c, e) => {
+            A.tests([
+              A.areEqual<typeof c, { foo: number }>(),
+              A.areEqual<typeof e, { type: "X" }>()
+            ])
+            return 100
+          }
+        },
+        { 
+          target: "a",
+          // @ts-expect-error
+          delay: () => {}
+        }
+      ],
+      on: {
+        X: "a"
+      }
+    },
+    b: {
+      after: {
+        100: { target: "a" },
+        200: {
+          target: "b",
+          // @ts-expect-error
+          delay: 10
+        }
+      }
+    },
+    c: { after: ["a"] },
+    d: { after: { target: "a" } }
+  }
+})

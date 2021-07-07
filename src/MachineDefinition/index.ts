@@ -101,7 +101,7 @@ namespace MachineDefinition {
       Type = A.Get<Self, "type", "compound">,
       On = A.Get<Self, "on">,
       EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>,
-      Data = A.Get<Self, "data">
+      IsAfterRecord = A.DoesExtend<A.Get<Self, ["after", "length"]>, undefined>
     > =
       & { type?:
           | "compound"
@@ -154,6 +154,19 @@ namespace MachineDefinition {
               Definition, L.Pushed<Path, "always">, Precomputed,
               Path
             >
+        , after?:
+            | ( IsAfterRecord extends true ? never :
+                Transition.OfWithStateNodePath<
+                  Definition, L.Pushed<Path, "after">, Precomputed,
+                  Path
+                >
+              )
+            | { [N in keyof A.Get<Self, "after">]:
+                  Transition.OfWithStateNodePath<
+                    Definition, L.Concat<Path, ["after", N]>, Precomputed,
+                    Path
+                  >
+              }
         , onDone?:
             Transition.OfWithStateNodePath<
               Definition, L.Pushed<Path, "onDone">, Precomputed,
@@ -239,6 +252,7 @@ namespace MachineDefinition {
       Path,
       Precomputed,
       StateNodePath,
+      Flags = never,
       Self = A.Get<Definition, Path>,
       IsInitial = A.DoesExtend<L.Pop<Path>, "initial">
     > =
@@ -248,18 +262,18 @@ namespace MachineDefinition {
               Definition, Path, Precomputed, StateNodePath
             > :
       | TargetAndExtrasWithStateNodePath<
-          Definition, Path, Precomputed, StateNodePath
+          Definition, Path, Precomputed, StateNodePath, Flags
         >
       | ( Self extends { target: any } ? never :
           | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
           | ( Self extends A.Tuple
-              ? { [K in keyof Self]:
-                    TargetAndExtrasWithStateNodePath<
-                      Definition, L.Pushed<Path, K>, Precomputed, StateNodePath
-                    >
-                }
-              : A.Tuple<TargetAndExtrasWithStateNodePath<
-                  Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, true
+                ? { [K in keyof Self]:
+                      TargetAndExtrasWithStateNodePath<
+                        Definition, L.Pushed<Path, K>, Precomputed, StateNodePath, Flags
+                      >
+                  }
+                : A.Tuple<TargetAndExtrasWithStateNodePath<
+                    Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, "NoChecks" | Flags
                 >>
             )
         )
@@ -269,7 +283,14 @@ namespace MachineDefinition {
       Path,
       Precomputed,
       StateNodePath,
-      NoChecks = false
+      Flags = never,
+      IsAfter =
+        L.Some<
+          [ A.DoesExtend<L.Get<Path, -1>, "after">
+          , A.DoesExtend<L.Get<Path, -2>, "after">
+          ]>,
+      IsAfterRecord = 
+        A.DoesExtend<A.Get<Definition, L.Pushed<L.Popped<Path>, "length">>, undefined>
     > =
       { target:
           TargetWithStateNodePath<
@@ -277,13 +298,24 @@ namespace MachineDefinition {
             L.Pushed<Path, "target">,
             Precomputed,
             StateNodePath,
-            NoChecks
+            Flags
           >
       , actions?: Execable.OfWithStateNodePath<
           Definition, L.Pushed<Path, "actions">, Precomputed,
           StateNodePath
         >
       , internal?: boolean
+      , delay?:
+          IsAfter extends true
+            ? IsAfterRecord extends true
+               ? `Error: delay is already set as ${A.Cast<L.Get<Path, -1>, A.Number | A.String>}`
+               : | ( ( context: Machine.Context.Of<Definition, Precomputed>
+                      , event: Machine.Event.Of<Definition, Precomputed>
+                      ) => A.Number
+                    )
+                  | A.String
+                  | A.Number
+            : "Error: `delay` can be set only for `after` transitions"
       }
 
     export type TargetWithStateNodePath<
@@ -291,7 +323,7 @@ namespace MachineDefinition {
       Path,
       Precomputed,
       StateNodePath,
-      NoChecks = false,
+      Flags = never,
       
       StateNode = A.Get<Definition, StateNodePath>,
       Self = A.Get<Definition, Path> extends infer X ? X : never,
@@ -312,12 +344,12 @@ namespace MachineDefinition {
                   : never
           )
     > =
-      | ( NoChecks extends true ? TargetPathString :
+      | ( "NoChecks" extends Flags ? TargetPathString :
           Self extends A.String
             ? TargetPathString
             : never
         )
-      | ( NoChecks extends true ? A.Tuple<TargetPathString> :
+      | ( "NoChecks" extends Flags ? A.Tuple<TargetPathString> :
           Self extends A.Tuple<TargetPathString>
             ? ParallelTargetPathStrings.OfWithStateNodePath<
                 Definition,
