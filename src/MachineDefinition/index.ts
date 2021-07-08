@@ -97,7 +97,9 @@ namespace MachineDefinition {
       Type = A.Get<Self, "type", "compound">,
       On = A.Get<Self, "on">,
       EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>,
-      IsAfterRecord = A.DoesExtend<A.Get<Self, ["after", "length"]>, undefined>
+      IsAfterRecord = A.DoesExtend<A.Get<Self, ["after", "length"]>, undefined>,
+      Context = Machine.Context.Of<Definition, Precomputed>,
+      Event = Machine.Event.Of<Definition, Precomputed>
     > =
       & { type?:
           | "compound"
@@ -113,9 +115,9 @@ namespace MachineDefinition {
           Type extends "parallel" ?
             { initial?: undefined } :
           { initial:
-              Transition.OfWithStateNodePath<
+              Transition.OfWithStateNodePathContextEvent<
                 Definition, L.Pushed<Path, "initial">, Precomputed,
-                Path, A.String
+                Path, Context, Event
               >
           }
         )
@@ -136,46 +138,46 @@ namespace MachineDefinition {
                     [ A.DoesExtend<[EventIdentifierSpec], [never]>
                     , A.DoesExtend<EventIdentifier, EventIdentifierSpec>
                     ]> extends true
-                      ? Transition.OfWithStateNodePath<
-                          Definition,
-                          L.Concat<Path, ["on", EventIdentifier]>,
-                          Precomputed,
-                          Path
+                      ? Transition.OfWithStateNodePathContextEvent<
+                          Definition, L.Concat<Path, ["on", EventIdentifier]>, Precomputed,
+                          Path, Context, U.Extract<Event, { type: EventIdentifier }>
                         >
                       : `Error: ${EventIdentifier} is not included in schema.event`
                   : "Error: only string identifier allowed"
             }
         , always?:
-            Transition.OfWithStateNodePath<
+            Transition.OfWithStateNodePathContextEvent<
               Definition, L.Pushed<Path, "always">, Precomputed,
-              Path
+              Path, Context, Event
             >
         , after?:
             | ( IsAfterRecord extends true ? never :
-                Transition.OfWithStateNodePath<
+                Transition.OfWithStateNodePathContextEvent<
                   Definition, L.Pushed<Path, "after">, Precomputed,
-                  Path
+                  Path, Context, Event
                 >
               )
             | { [N in keyof A.Get<Self, "after">]:
-                  Transition.OfWithStateNodePath<
+                  Transition.OfWithStateNodePathContextEvent<
                     Definition, L.Concat<Path, ["after", N]>, Precomputed,
-                    Path
+                    Path, Context, Event
                   >
               }
         , onDone?:
-            Transition.OfWithStateNodePath<
+            Transition.OfWithStateNodePathContextEvent<
               Definition, L.Pushed<Path, "onDone">, Precomputed,
-              Path
+              Path, Context, Machine.Event.ForDone.OfWithStateNodePath<Definition, Precomputed, Path>
             >
         , _?: null
         , entry?:
-            Execable.OfWithStateNodePath<
-              Definition, L.Pushed<Path, "entry">, Precomputed, Path
+            Execable.OfWithContextEvent<
+              Definition, L.Pushed<Path, "entry">, Precomputed,
+              Context, Machine.Event.ForEntry.OfWithStateNodePath<Definition, Precomputed, Path>
             >
         , exit?:
-            Execable.OfWithStateNodePath<
-              Definition, L.Pushed<Path, "exit">, Precomputed, Path
+            Execable.OfWithContextEvent<
+              Definition, L.Pushed<Path, "exit">, Precomputed,
+              Context, Machine.Event.ForExit.OfWithStateNodePath<Definition, Precomputed, Path>
             >
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , order?: number
@@ -239,7 +241,7 @@ namespace MachineDefinition {
                       >
                   }
             : never
-      , onDone: Transition .Desugar<A.Get<N, "onDone">, ReferencePathString.Append<R, "onDone">>
+      , onDone: Transition.Desugar<A.Get<N, "onDone">, ReferencePathString.Append<R, "onDone">>
       , entry: Execable.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">, "entry">
       , exit: Execable.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">, "exit">
       , id: A.Get<N, "id">
@@ -254,43 +256,50 @@ namespace MachineDefinition {
   }
 
   export namespace Transition {
-
-    export type OfWithStateNodePath<
+    export type OfWithStateNodePathContextEvent<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
+      Context,
+      Event,
       Flags = never,
       Self = A.Get<Definition, Path>,
       IsInitial = A.DoesExtend<L.Pop<Path>, "initial">
     > =
       IsInitial extends true
         ? | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
-          | TargetAndExtrasWithStateNodePath<
-              Definition, Path, Precomputed, StateNodePath
+          | TargetAndExtrasWithStateNodePathContextEvent<
+              Definition, Path, Precomputed,
+              StateNodePath, Context, Event
             > :
-      | TargetAndExtrasWithStateNodePath<
-          Definition, Path, Precomputed, StateNodePath, Flags
+      | TargetAndExtrasWithStateNodePathContextEvent<
+          Definition, Path, Precomputed,
+          StateNodePath, Context, Event, Flags
         >
       | ( Self extends { target: any } ? never :
           | TargetWithStateNodePath<Definition, Path, Precomputed, StateNodePath>
           | ( Self extends A.Tuple
                 ? { [K in keyof Self]:
-                      TargetAndExtrasWithStateNodePath<
-                        Definition, L.Pushed<Path, K>, Precomputed, StateNodePath, Flags
+                      TargetAndExtrasWithStateNodePathContextEvent<
+                        Definition, L.Pushed<Path, K>, Precomputed,
+                        StateNodePath, Context, Event, Flags
                       >
                   }
-                : A.Tuple<TargetAndExtrasWithStateNodePath<
-                    Definition, L.Pushed<Path, number>, Precomputed, StateNodePath, "NoChecks" | Flags
-                >>
+                : A.Tuple<TargetAndExtrasWithStateNodePathContextEvent<
+                    Definition, L.Pushed<Path, number>, Precomputed,
+                    StateNodePath, Context, Event, "NoChecks" | Flags
+                  >>
             )
         )
 
-    export type TargetAndExtrasWithStateNodePath<
+    export type TargetAndExtrasWithStateNodePathContextEvent<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
+      Context,
+      Event,
       Flags = never,
       IsAfter =
         L.Some<
@@ -308,9 +317,9 @@ namespace MachineDefinition {
             StateNodePath,
             Flags
           >
-      , actions?: Execable.OfWithStateNodePath<
+      , actions?: Execable.OfWithContextEvent<
           Definition, L.Pushed<Path, "actions">, Precomputed,
-          StateNodePath
+          Context, Event
         >
       , internal?: boolean
       , delay?:
@@ -528,30 +537,13 @@ namespace MachineDefinition {
   }
 
   export namespace Execable {
-    export type OfWithStateNodePath<
+    export type OfWithContextEvent<
       Definition,
       Path,
       Precomputed,
-      StateNodePath,
-      Self = A.Get<Definition, Path>,
-      UniversalEvent = Machine.Event.Of<Definition, Precomputed>,
-      Event =
-        L.Get<Path, -3> extends "on" ?
-          U.Extract<UniversalEvent, { type: L.Get<Path, -2> }> :
-        L.Get<Path, -1> extends "entry" ?
-          Machine.Event.ForEntry.OfWithStateNodePath<
-            Definition, Precomputed, StateNodePath
-          > :
-        L.Get<Path, -1> extends "exit" ?
-          Machine.Event.ForExit.OfWithStateNodePath<
-            Definition, Precomputed, StateNodePath
-          > :
-        L.Get<Path, -2> extends "onDone" ?
-          Machine.Event.ForDone.OfWithStateNodePath<
-            Definition, Precomputed, StateNodePath
-          > :
-        UniversalEvent,
-      Context = Machine.Context.Of<Definition, Precomputed>
+      Context = Machine.Context.Of<Definition, Precomputed>,
+      Event = Machine.Event.Of<Definition, Precomputed>,
+      Self = A.Get<Definition, Path>
     > =
       | [ Unit<
             Definition, L.Pushed<Path, 0>, Precomputed,
