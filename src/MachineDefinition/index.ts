@@ -49,18 +49,14 @@ namespace MachineDefinition {
                 ? () => A.Get<Definition, ["schema", "context"]>
                 : A.Get<Definition, ["schema", "context"]>
       }
-    & { [_ in $$Self]?: Definition }
+    & { [$$Self]?: Definition }
 
  
-  const $$Self = Symbol("$$Self")
+  export declare const $$Self: unique symbol;
   export type $$Self = typeof $$Self;
-
-
-  export type Internal<T> =
-    { [_ in $$Internal]: T }
-
-  const $$Internal = Symbol("$$Internal")
+  export declare const $$Internal: unique symbol;
   export type $$Internal = typeof $$Internal;
+  export type Internal<T> = { [$$Internal]: T }
 
   export type Desugar<D> =
     & StateNode.Desugar<D, "">

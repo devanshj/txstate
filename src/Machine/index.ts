@@ -7,7 +7,7 @@ namespace Machine {
   export type Of<
     MaybeDefinition, // in an machine with error this would be MachineDefinition.Of<D> otherwise it'll be D
     Definition =
-      MaybeDefinition extends { [_ in MachineDefinition.$$Self]: unknown }
+      MaybeDefinition extends { [MachineDefinition.$$Self]: unknown }
         ? U.Exclude<A.Get<MaybeDefinition, MachineDefinition.$$Self>, undefined>
         : MaybeDefinition
     > =
