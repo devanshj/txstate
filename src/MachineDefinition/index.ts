@@ -534,7 +534,6 @@ namespace MachineDefinition {
       Precomputed,
       StateNodePath,
       Self = A.Get<Definition, Path>,
-      StateNode = A.Get<Definition, StateNodePath>,
       UniversalEvent = Machine.Event.Of<Definition, Precomputed>,
       Event =
         L.Get<Path, -3> extends "on" ?
@@ -554,31 +553,27 @@ namespace MachineDefinition {
         UniversalEvent,
       Context = Machine.Context.Of<Definition, Precomputed>
     > =
-      | [ | S.InferNarrowest<A.Get<Self, 0>>
-          | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
-              Definition, Precomputed,
-              ((context: Context, event: Event) => unknown)
-            >
-          | ( { type: S.InferNarrowest<A.Get<Self, [0, "type"]>>
-              , exec?: (context: Context, event: Event) => unknown
-              }
-            & { [_ in string]: unknown }
-            )
+      | [ Unit<
+            Definition, L.Pushed<Path, 0>, Precomputed,
+            Context, Event, "IsTupleElement"
+          >
         ]
       | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
-            { [K in keyof Self]:
-                | S.InferNarrowest<Self[K]>
-                | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
-                    Definition, Precomputed,
-                    ((context: Context, event: Event) => unknown)
-                  >
-                | ( { type: S.InferNarrowest<A.Get<Self[K], "type">>
-                    , exec?: (context: Context, event: Event) => unknown
-                    }
-                  & { [_ in string]: unknown }
-                  )
-            }
+          { [K in keyof Self]:
+              Unit<
+                Definition, L.Pushed<Path, K>, Precomputed,
+                Context, Event, "IsTupleElement"
+              >
+          }
         )
+      | Unit<Definition, Path, Precomputed, Context, Event>
+
+    type Unit<
+      Definition, Path, Precomputed,
+      Context, Event,
+      Flags = never,
+      Self = A.Get<Definition, Path>
+    > =
       | S.InferNarrowest<Self>
       | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
           Definition, Precomputed,
@@ -587,7 +582,10 @@ namespace MachineDefinition {
       | ( { type: S.InferNarrowest<A.Get<Self, "type">>
           , exec?: (context: Context, event: Event) => unknown
           }
-        & { [_ in U.Exclude<keyof Self, "type" | "exec">]: unknown }
+          & ( "IsTupleElement" extends Flags
+                ? { [_ in A.String]: unknown }
+                : { [_ in U.Exclude<keyof Self, "type" | "exec">]: unknown }
+            )
         )
 
 
