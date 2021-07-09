@@ -1,9 +1,9 @@
 {
     "cSpell.words": [
-        "Lcca",
-        "datamodel",
-        "onentry",
-        "scxml"
+        "origintype",
+        "scxml",
+        "sendid",
+        "invokeid"
     ],
     "editor.rulers": [
         180

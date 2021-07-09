@@ -1,3 +1,4 @@
+import { UnknownBehavior } from "../Behavior";
 import { O, A, U, L, B, S, F } from "../extras";
 import Machine from "../Machine";
 import { ReferencePathString } from "../universal";
@@ -179,6 +180,7 @@ namespace MachineDefinition {
               Definition, L.Pushed<Path, "exit">, Precomputed,
               Context, Machine.Event.ForExit.OfWithStateNodePath<Definition, Precomputed, Path>
             >
+        , invoke?: Invocation.OfWithStateNodePath<Definition, L.Pushed<Path, "invoke">, Precomputed, Path>
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
         , order?: number
         , meta?: unknown
@@ -597,5 +599,69 @@ namespace MachineDefinition {
             ) & { __referencePath: ReferencePathString.Append<R, I> }
           }
         : never
+  }
+
+  namespace Invocation {
+    export type OfWithStateNodePath<
+      Definition,
+      Path,
+      Precomputed,
+      StateNodePath,
+      Self = A.Get<Definition, Path>
+    > =
+      | [ Unit<Definition, L.Pushed<Path, 0>, Precomputed, StateNodePath> ]
+      | ( Self extends A.Tuple
+            ? { [K in keyof Self]: Unit<Definition, L.Pushed<Path, K>, Precomputed, StateNodePath> }
+            : never
+        )
+      | Unit<Definition, Path, Precomputed, StateNodePath>
+
+    type Unit<
+      Definition,
+      Path,
+      Precomputed,
+      StateNodePath,
+      Self = A.Get<Definition, Path>,
+      Context = Machine.Context.Of<Definition, Precomputed>,
+      Event = Machine.Event.Of<Definition, Precomputed>
+    > =
+      | S.InferNarrowest<Self>
+      | ( ( context: Context
+          , event: Event
+          ) => UnknownBehavior
+        )
+      | { src?:
+            | S.InferNarrowest<A.Get<Self, "src">>
+            | ( { type: S.InferNarrowest<A.Get<Self, ["src", "type"]>> }
+              & { [_ in A.String]: unknown }
+              )
+            | ( ( context: Context
+                , event: Event
+                ) => UnknownBehavior
+              )
+        , id?: S.InferNarrowest<A.Get<Self, "id">>
+        , autoForward?: boolean
+        , data?: // TODO
+            | ( ( context: Context
+                , event: Event
+                ) => unknown
+              )
+            | { [K in A.Key]:
+                  ( context: Context
+                  , event: Event
+                  ) => unknown
+              }
+        , onDone?: // TODO
+            Transition.OfWithStateNodePathContextEvent<
+              Definition, L.Pushed<Path, "onDone">, Precomputed,
+              StateNodePath, Context, Event
+            >
+        , onError?: // TODO
+            Transition.OfWithStateNodePathContextEvent<
+              Definition, L.Pushed<Path, "onError">, Precomputed,
+              StateNodePath, Context, Event
+            >
+        }
+
   }
 }

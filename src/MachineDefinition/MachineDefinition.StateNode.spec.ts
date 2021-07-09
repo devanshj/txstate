@@ -248,3 +248,46 @@ let t2 = createMachine({
     d: { after: { target: "a" } }
   }
 })
+
+let t3 = createMachine({
+  context: {},
+  initial: "a",
+  states: {
+    a: {
+      _: null,
+      invoke: [
+        { 
+          src: "foo",
+          onDone: {
+            target: "a"
+          }
+        }
+      ]
+    }
+  }
+})
+A.test(A.areEqual<typeof t3.config.states.a.invoke[0]["src"], "foo">())
+A.test(A.areEqual<typeof t3.config.states.a.invoke[0]["onDone"]["target"], "a">())
+
+createMachine({
+  context: { foo: 1 },
+  initial: "a",
+  states: {
+    a: {
+      _: null,
+      invoke: [
+        { src: "foo" },
+        // @ts-expect-error
+        (c, e) => {
+          A.tests([
+            A.areEqual<typeof c, { foo: number }>(),
+            A.areEqual<typeof e, { type: "X" }>()
+          ])
+        }
+      ],
+      on: {
+        X: "a"
+      }
+    }
+  }
+})

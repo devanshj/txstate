@@ -105,6 +105,7 @@ export namespace A {
   export type Universal =
     | string | number | boolean | undefined | null | bigint
     | object | ((...a: any[]) => any)
+  export type Key = keyof any;
     
 
   export type Get<T, P, F = undefined> =
