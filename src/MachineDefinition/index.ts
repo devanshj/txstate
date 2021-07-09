@@ -173,12 +173,12 @@ namespace MachineDefinition {
         , entry?:
             Execable.OfWithContextEvent<
               Definition, L.Pushed<Path, "entry">, Precomputed,
-              Context, Machine.Event.ForEntry.OfWithStateNodePath<Definition, Precomputed, Path>
+              Context, Machine.Event.ForEntry.OfWithStateNodePath<Definition, Precomputed, Path>, "IsAction"
             >
         , exit?:
             Execable.OfWithContextEvent<
               Definition, L.Pushed<Path, "exit">, Precomputed,
-              Context, Machine.Event.ForExit.OfWithStateNodePath<Definition, Precomputed, Path>
+              Context, Machine.Event.ForExit.OfWithStateNodePath<Definition, Precomputed, Path>, "IsAction"
             >
         , invoke?: Invocation.OfWithStateNodePath<Definition, L.Pushed<Path, "invoke">, Precomputed, Path>
         , id?: Id.Of<Definition, L.Pushed<Path, "id">, Precomputed>
@@ -321,7 +321,7 @@ namespace MachineDefinition {
           >
       , actions?: Execable.OfWithContextEvent<
           Definition, L.Pushed<Path, "actions">, Precomputed,
-          Context, Event
+          Context, Event, "IsAction"
         >
       , internal?: boolean
       , delay?:
@@ -543,24 +543,25 @@ namespace MachineDefinition {
       Definition,
       Path,
       Precomputed,
-      Context = Machine.Context.Of<Definition, Precomputed>,
-      Event = Machine.Event.Of<Definition, Precomputed>,
+      Context,
+      Event,
+      Flags = never,
       Self = A.Get<Definition, Path>
     > =
       | [ Unit<
             Definition, L.Pushed<Path, 0>, Precomputed,
-            Context, Event, "IsTupleElement"
+            Context, Event, "IsTupleElement" | Flags
           >
         ]
       | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
           { [K in keyof Self]:
               Unit<
                 Definition, L.Pushed<Path, K>, Precomputed,
-                Context, Event, "IsTupleElement"
+                Context, Event, "IsTupleElement" | Flags
               >
           }
         )
-      | Unit<Definition, Path, Precomputed, Context, Event>
+      | Unit<Definition, Path, Precomputed, Context, Event, Flags>
 
     type Unit<
       Definition, Path, Precomputed,
@@ -569,10 +570,13 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>
     > =
       | S.InferNarrowest<Self>
-      | Machine.XstateAction.InferralHint.OfWithAdjacentAction<
-          Definition, Precomputed,
-          ((context: Context, event: Event) => unknown)
-        >
+      | ( "IsAction" extends Flags
+            ? Machine.XstateAction.InferralHint.OfWithAdjacentAction<
+                Definition, Precomputed,
+                ((context: Context, event: Event) => unknown)
+              >
+            : (context: Context, event: Event) => unknown
+        )
       | ( { type: S.InferNarrowest<A.Get<Self, "type">>
           , exec?: (context: Context, event: Event) => unknown
           }
