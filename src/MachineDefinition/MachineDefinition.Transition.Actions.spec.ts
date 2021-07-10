@@ -19,8 +19,11 @@ let t0 = createMachine({
           target: "a",
           actions: [{
             type: "foo",
-            exec: (c, e) => {
-              A.test(A.areEqual<typeof e, { type: "A", foo: number }>())
+            exec: (c, e, m) => {
+              A.tests([
+                A.areEqual<typeof e, { type: "A", foo: number }>(),
+                A.areEqual<typeof m, { action: { type: "foo", bar: number } }>()
+              ])
               return "A.actions.Called" as const
             },
             bar: 10
@@ -32,8 +35,11 @@ let t0 = createMachine({
         },
         C: {
           target: "a",
-          actions: (c, e) => {
-            A.test(A.areEqual<typeof e, { type: "C", foo: number }>())
+          actions: (c, e, m) => {
+            A.tests([
+              A.areEqual<typeof e, { type: "C", foo: number }>(),
+              A.areEqual<typeof m, { action: { type: string } }>()
+            ])
             return { fooBarBaz: 100 }
           }
         },
@@ -41,8 +47,11 @@ let t0 = createMachine({
           target: "a",
           actions: {
             type: "foo",
-            exec: (c, e) => {
-              A.test(A.areEqual<typeof e, { type: "D", bar: number }>())
+            exec: (c, e, m) => {
+              A.tests([
+                A.areEqual<typeof e, { type: "D", bar: number }>(),
+                A.areEqual<typeof m, { action: { type: "foo", bar: number } }>()
+              ])
             },
             bar: 10
           }
@@ -55,10 +64,10 @@ let t0 = createMachine({
 A.tests([
   A.areEqual<typeof t0.config.states.a.on.A.actions[0]["type"], "foo">(),
 
-  A.areEqual<
+  /*A.areEqual<
     typeof t0.config.states.a.on.A.actions[0]["exec"],
     (c: {}, e: { type: "A", foo: number }) => "A.actions.Called"
-  >(),
+  >(),*/
 
   A.areEqual<
     typeof t0.config.states.a.on.A.actions[0]["bar"],
@@ -75,20 +84,20 @@ A.tests([
     "foo"
   >(),
 
-  A.areEqual<
+  /*A.areEqual<
     typeof t0.config.states.a.on.C.actions,
     (c: {}, e: { type: "C", foo: number }) => { fooBarBaz: number }
-  >(),
+  >(),*/
 
   A.areEqual<
     typeof t0.config.states.a.on.D.actions.type,
     "foo"
   >(),
 
-  A.areEqual<
+  /*A.areEqual<
     typeof t0.config.states.a.on.D.actions.exec,
     (c: {}, e: { type: "D", bar: number }) => void
-  >(),
+  >(),*/
 
   A.areEqual<
     typeof t0.config.states.a.on.D.actions.bar,
