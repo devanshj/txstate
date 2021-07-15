@@ -23,18 +23,6 @@ namespace MachineDefinition {
               A.IsPlainObject<A.Get<Definition, ["schema", "context"]>> extends true
                 ? A.Get<Definition, ["schema", "context"]>
                 : `Error: The type you is not an object`
-          , actions?:
-              A.Get<Definition, ["schema", "actions"]> extends { type: string }
-                ? A.Get<Definition, ["schema", "actions"]>
-                : `Error: The type you provided does not extends { type: string }`
-          , guards?:
-              A.Get<Definition, ["schema", "guards"]> extends { type: string }
-                ? A.Get<Definition, ["schema", "guards"]>
-                : `Error: The type you provided does not extends { type: string }`
-          , services?:
-              A.Get<Definition, ["schema", "services"]> extends { type: string }
-                ? A.Get<Definition, ["schema", "services"]>
-                : `Error: The type you provided does not extends { type: string }`
           }
       }
     & { context:
