@@ -320,6 +320,10 @@ namespace MachineDefinition {
             StateNodePath,
             Flags
           >
+      , guard?: Execable.OfWithContextEvent<
+          Definition, L.Pushed<Path, "actions">, Precomputed,
+          Context, Event, "IsGuard"
+        >
       , actions?: Execable.OfWithContextEvent<
           Definition, L.Pushed<Path, "actions">, Precomputed,
           Context, Event, "IsAction"
@@ -579,8 +583,10 @@ namespace MachineDefinition {
                   , meta: "TODO"
                   ) => unknown
                 )
-              >
-            : (context: Context, event: Event, meta: "TODO") => unknown
+              > :
+          "IsGuard" extends Flags
+            ? (context: Context, event: Event, meta: "TODO") => boolean :
+          (context: Context, event: Event, meta: "TODO") => unknown
         )
       | ( { type: S.InferNarrowest<A.Get<Self, "type">>
           , exec?:
