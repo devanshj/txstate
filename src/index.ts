@@ -1,4 +1,4 @@
-import { UnknownActorRef } from "./Behavior";
+import { UnknownActorRef } from "./Actor";
 import { A } from "./extras";
 import Machine from "./Machine";
 import MachineDefinition from "./MachineDefinition";

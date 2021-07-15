@@ -1,5 +1,4 @@
-import { SCXML, UnknownEvent } from "..";
-import { UnknownBehavior } from "../Behavior";
+import { UnknownActor } from "../Actor";
 import { O, A, U, L, B, S, F } from "../extras";
 import Machine from "../Machine";
 import { ReferencePathString } from "../universal";
@@ -646,7 +645,7 @@ namespace MachineDefinition {
       | S.InferNarrowest<Self>
       | ( ( context: Context
           , event: Event
-          ) => UnknownBehavior
+          ) => UnknownActor
         )
       | { src?:
             | S.InferNarrowest<A.Get<Self, "src">>
@@ -655,7 +654,7 @@ namespace MachineDefinition {
               )
             | ( ( context: Context
                 , event: Event
-                ) => UnknownBehavior
+                ) => UnknownActor
               )
         , id?: S.InferNarrowest<A.Get<Self, "id">>
         , autoForward?: boolean

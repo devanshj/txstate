@@ -1,6 +1,6 @@
 import { SCXML, UnknownEvent } from "..";
 
-export interface Behavior<E extends UnknownEvent, T>
+export interface Actor<E extends UnknownEvent, T>
   { transition:
       ( state: T
       , event: E | LifecycleSignal
@@ -11,8 +11,8 @@ export interface Behavior<E extends UnknownEvent, T>
   , subscribe?: (observer: Observer<T>) => Subscription | undefined
   }
 
-export interface UnknownBehavior
-  extends Behavior<UnknownEvent, unknown> {}
+export interface UnknownActor
+  extends Actor<UnknownEvent, unknown> {}
 
 export type LifecycleSignal = StartSignal | StopSignal
 export interface StartSignal { type: typeof startSignalType }
