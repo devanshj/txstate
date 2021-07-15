@@ -203,6 +203,7 @@ namespace Machine {
       > =
         { ( context: A.Get<PrecedingParameters, 0>
           , event: A.Get<PrecedingParameters, 1>
+          , meta: A.Get<PrecedingParameters, 2>
           , $$internal:
               MachineDefinition.Internal<
                 Creator.Parameters.Of<Definition, Precomputed>
@@ -213,7 +214,7 @@ namespace Machine {
     }
 
     export type FromInternalAndParameters<Internal, Parameters> =
-      { (context: unknown, event: unknown, $$internal: Internal): void
+      { (context: unknown, event: unknown, meta: unknown, $$internal: Internal): void
       , type: "xstate.send"
       , event:
           A.Get<Parameters, 0> extends string

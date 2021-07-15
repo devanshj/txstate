@@ -1,3 +1,4 @@
+import { SCXML, UnknownEvent } from "..";
 import { UnknownBehavior } from "../Behavior";
 import { O, A, U, L, B, S, F } from "../extras";
 import Machine from "../Machine";
@@ -573,19 +574,26 @@ namespace MachineDefinition {
       | ( "IsAction" extends Flags
             ? Machine.XstateAction.InferralHint.OfWithAdjacentAction<
                 Definition, Precomputed,
-                ((context: Context, event: Event) => unknown)
+                ( ( context: Context
+                  , event: Event
+                  , meta: "TODO"
+                  ) => unknown
+                )
               >
-            : (context: Context, event: Event) => unknown
+            : (context: Context, event: Event, meta: "TODO") => unknown
         )
       | ( { type: S.InferNarrowest<A.Get<Self, "type">>
-          , exec?: (context: Context, event: Event) => unknown
+          , exec?:
+              ( context: Context
+              , event: Event
+              , meta: "TODO"
+              ) => unknown
           }
           & ( "IsTupleElement" extends Flags
                 ? { [_ in A.String]: unknown }
                 : { [_ in U.Exclude<keyof Self, "type" | "exec">]: unknown }
             )
         )
-
 
     export type Desugar<A, R, DefaultType> =
       A extends undefined ? [] :

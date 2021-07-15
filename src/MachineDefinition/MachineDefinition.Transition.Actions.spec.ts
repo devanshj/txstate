@@ -19,8 +19,11 @@ let t0 = createMachine({
           target: "a",
           actions: [{
             type: "foo",
-            exec: (c, e) => {
-              A.test(A.areEqual<typeof e, { type: "A", foo: number }>())
+            exec: (c, e, m) => {
+              A.tests([
+                A.areEqual<typeof e, { type: "A", foo: number }>(),
+                A.areEqual<typeof m, "TODO">()
+              ])
               return "A.actions.Called" as const
             },
             bar: 10
@@ -32,8 +35,11 @@ let t0 = createMachine({
         },
         C: {
           target: "a",
-          actions: (c, e) => {
-            A.test(A.areEqual<typeof e, { type: "C", foo: number }>())
+          actions: (c, e, m) => {
+            A.tests([
+              A.areEqual<typeof e, { type: "C", foo: number }>(),
+              A.areEqual<typeof m, "TODO">()
+            ])
             return { fooBarBaz: 100 }
           }
         },
@@ -41,8 +47,11 @@ let t0 = createMachine({
           target: "a",
           actions: {
             type: "foo",
-            exec: (c, e) => {
-              A.test(A.areEqual<typeof e, { type: "D", bar: number }>())
+            exec: (c, e, m) => {
+              A.tests([
+                A.areEqual<typeof e, { type: "D", bar: number }>(),
+                A.areEqual<typeof m, "TODO">()
+              ])
             },
             bar: 10
           }
@@ -57,7 +66,7 @@ A.tests([
 
   A.areEqual<
     typeof t0.config.states.a.on.A.actions[0]["exec"],
-    (c: {}, e: { type: "A", foo: number }) => "A.actions.Called"
+    (c: {}, e: { type: "A", foo: number }, m: "TODO") => "A.actions.Called"
   >(),
 
   A.areEqual<
@@ -77,7 +86,7 @@ A.tests([
 
   A.areEqual<
     typeof t0.config.states.a.on.C.actions,
-    (c: {}, e: { type: "C", foo: number }) => { fooBarBaz: number }
+    (c: {}, e: { type: "C", foo: number }, m: "TODO") => { fooBarBaz: number }
   >(),
 
   A.areEqual<
@@ -87,7 +96,7 @@ A.tests([
 
   A.areEqual<
     typeof t0.config.states.a.on.D.actions.exec,
-    (c: {}, e: { type: "D", bar: number }) => void
+    (c: {}, e: { type: "D", bar: number }, m: "TODO") => void
   >(),
 
   A.areEqual<
