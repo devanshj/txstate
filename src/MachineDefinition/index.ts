@@ -207,33 +207,27 @@ namespace MachineDefinition {
           keyof A.Get<N, "initial"> extends undefined ? "parallel" :
           "compound"
         >
-      , initial: Transition.Desugar<A.Get<N, "initial">, ReferencePathString.Append<R, "initial">>
+      , initial: Transition.Desugar<A.Get<N, "initial">>
       , states: A.Get<N, "states", {}> extends infer States
           ? { [S in keyof States]: Desugar<States[S], ReferencePathString.Append<R, S>> }
           : never
       , on: A.Get<N, "on", {}> extends infer On
-          ? { [K in keyof On]:
-                Transition.Desugar<
-                  On[K],
-                  ReferencePathString.Append<R, `on.${S.Assert<K>}`>
-                >
+          ? { [K in keyof On]: Transition.Desugar<On[K]>
             }
           : never
-      , always: Transition.Desugar<A.Get<N, "always">, ReferencePathString.Append<R, "always">>
+      , always: Transition.Desugar<A.Get<N, "always">>
       , after:
           A.Get<N, "after"> extends infer After
             ? After extends A.Tuple
-                ? Transition.Desugar<After, ReferencePathString.Append<R, "after">>
+                ? Transition.Desugar<After>
                 : { [K in keyof After]:
-                      Transition.Desugar<
-                        After,
-                        ReferencePathString.Append<R, `after.${A.Cast<K, A.Number | A.String>}`>
-                      >
+                      Transition.Desugar<After>
                   }
             : never
-      , onDone: Transition.Desugar<A.Get<N, "onDone">, ReferencePathString.Append<R, "onDone">>
-      , entry: Execable.Desugar<A.Get<N, "entry">, ReferencePathString.Append<R, "entry">, "entry">
-      , exit: Execable.Desugar<A.Get<N, "exit">, ReferencePathString.Append<R, "exit">, "exit">
+      , onDone: Transition.Desugar<A.Get<N, "onDone">>
+      , entry: Execable.Desugar<A.Get<N, "entry">, "entry">
+      , exit: Execable.Desugar<A.Get<N, "exit">, "exit">
+      , invoke: A.Get<N, "invoke"> // TODO desugar
       , id: A.Get<N, "id">
       , order: A.Get<N, "order">
       , meta: A.Get<N, "meta">
@@ -371,7 +365,7 @@ namespace MachineDefinition {
             : A.Tuple<TargetPathString>
         )
 
-    export type Desugar<T, R> =
+    export type Desugar<T> =
       ( T extends A.Object[] ? T :
         T extends A.Object ? [T] :
         T extends A.String | A.Tuple ? [{ target: T }] :
@@ -385,8 +379,7 @@ namespace MachineDefinition {
                     : never
               , internal: A.Get<Ts[K], "internal">
               , guard: A.Get<Ts[K], "guard", () => true>
-              , actions: Execable.Desugar<A.Get<Ts[K], "actions">, R, "actions">
-              , __referencePath: ReferencePathString.Append<R, K>
+              , actions: Execable.Desugar<A.Get<Ts[K], "actions">, "actions">
               } extends infer Target
                 ? O.Update<Target, {
                     internal: L.Every<{ [I in keyof A.Get<Target, "target">]: 
@@ -588,11 +581,11 @@ namespace MachineDefinition {
             )
         )
 
-    export type Desugar<A, R, DefaultType> =
+    export type Desugar<A, DefaultType> =
       A extends undefined ? [] :
       (A extends any[] ? A : [A]) extends infer A
         ? { [I in keyof A]:
-            ( A[I] extends A.String ? { type: A[I] } :
+              A[I] extends A.String ? { type: A[I] } :
               A[I] extends A.Function ? {
                 type:
                   A[I] extends { name: infer X }
@@ -601,7 +594,6 @@ namespace MachineDefinition {
                 exec: A[I]
               } :
               A[I]
-            ) & { __referencePath: ReferencePathString.Append<R, I> }
           }
         : never
   }

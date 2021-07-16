@@ -158,7 +158,7 @@ namespace Machine {
       Node = ReferencePathString.ToNode<Root, Definition>,
       Initial = A.Get<Node, "initial">,
       ChildState = keyof A.Get<Node, "states">,
-      Always = MachineDefinition.Transition.Desugar<A.Get<Node, "always">, Root>
+      Always = MachineDefinition.Transition.Desugar<A.Get<Node, "always">>
     > =
       | ( Initial extends A.String
           ? | ReferencePathString.Append<Root, Initial>
