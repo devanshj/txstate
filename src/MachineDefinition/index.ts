@@ -302,7 +302,7 @@ namespace MachineDefinition {
             Flags
           >
       , guard?: Execable.OfWithContextEvent<
-          Definition, L.Pushed<Path, "actions">, Precomputed,
+          Definition, L.Pushed<Path, "guard">, Precomputed,
           Context, Event, "IsGuard"
         >
       , actions?: Execable.OfWithContextEvent<
