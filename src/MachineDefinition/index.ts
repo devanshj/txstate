@@ -533,18 +533,20 @@ namespace MachineDefinition {
       Flags = never,
       Self = A.Get<Definition, Path>
     > =
-      | [ Unit<
-            Definition, L.Pushed<Path, 0>, Precomputed,
-            Context, Event, "IsTupleElement" | Flags
-          >
-        ]
-      | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
-          { [K in keyof Self]:
-              Unit<
-                Definition, L.Pushed<Path, K>, Precomputed,
-                Context, Event, "IsTupleElement" | Flags
-              >
-          }
+      | ( "IsGuard" extends Flags ? never :
+        | [ Unit<
+              Definition, L.Pushed<Path, 0>, Precomputed,
+              Context, Event, "IsTupleElement" | Flags
+            >
+          ]
+        | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
+            { [K in keyof Self]:
+                Unit<
+                  Definition, L.Pushed<Path, K>, Precomputed,
+                  Context, Event, "IsTupleElement" | Flags
+                >
+            }
+          )
         )
       | Unit<Definition, Path, Precomputed, Context, Event, Flags>
 
