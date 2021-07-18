@@ -243,19 +243,28 @@ namespace Machine {
           Internal,
           Self,
           Parameters = A.Get<Internal, [MachineDefinition.$$Internal]>,
-          EventType = U.Extract<A.Get<Parameters, 0>, A.String>,
-          Event = U.Exclude<A.Get<Parameters, 0>, A.String>
+          SpecEventType = U.Extract<A.Get<Parameters, 0>, A.String>,
+          SpecEvent = U.Exclude<A.Get<Parameters, 0>, A.String>
         > =
           [ event:
-          | ( EventType extends any
-                ? S.InferNarrowest<EventType>
+          | ( SpecEventType extends any
+                ? S.InferNarrowest<SpecEventType>
                 : never
             )
-          | ( Event extends any
-                ? ( { type: S.InferNarrowest<A.Get<Event, "type">> }
-                  & O.Omit<Event, "type">
-                  )
-                : never
+          | ( { type:
+                  S.IsLiteral<A.Get<Self, [0, "type"]>> extends true
+                    ? A.Get<Self, [0, "type"]> extends A.Get<SpecEvent, "type">
+                        ? S.InferNarrowest<A.Get<Self, [0, "type"]>>
+                        : S.InferNarrowest<A.Get<SpecEvent, "type">>
+                    : S.InferNarrowest<A.Get<SpecEvent, "type">>
+              }
+            & ( U.Extract<SpecEvent, { type: A.Get<Self, [0, "type"]> }> extends infer E
+                  ? [E] extends [never] ? {} :
+                    E extends any
+                      ? { [K in keyof E as U.Exclude<K, "type">]: E[K] }
+                      : never
+                  : never
+              )
             )
           ]
       }

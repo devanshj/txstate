@@ -207,6 +207,12 @@ export namespace S {
   export type String = string;
   export type Assert<T> = A.Cast<T, A.String>
   export type InferNarrowest<T> = T extends string ? T : string
+  export type IsLiteral<T> =
+    T extends A.String
+      ? A.String extends T
+          ? false
+          : true
+      : false;
   
   export type DoesStartWith<S, X> =
     S extends X ? B.True :

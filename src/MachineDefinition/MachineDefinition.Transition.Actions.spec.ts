@@ -168,7 +168,6 @@ let t4 = createMachine({
 
 A.tests([
   A.areEqual<typeof t4.config.states.a.on.X.actions.event, { type: "X" }>(),
-  // @ts-ignore TODO
   A.areEqual<typeof t4.config.states.a.on.Y.actions.event, { type: "Z" }>(),
   A.areEqual<typeof t4.config.states.a.on.Z.actions[0]["event"], { type: "X" }>(),
   A.areEqual<typeof t4.config.states.a.on.Z.actions[1], "ha">(),
@@ -199,7 +198,7 @@ createMachine({
         Y: {
           target: "a",
           actions: send(
-            // @ts-expect-error
+            // @ts-ignore
             { type: "Y" }
           )
         },
