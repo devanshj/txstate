@@ -6,17 +6,19 @@ import MachineDefinition from "../MachineDefinition";
 export default MachineImplementations;
 namespace MachineImplementations {
   export type Of<
-    MaybeDefinition, // in an machine with error this would be MachineDefinition.Of<D> otherwise it'll be D
-    Definition =
-      MaybeDefinition extends { [MachineDefinition.$$Self]: unknown }
-        ? U.Exclude<A.Get<MaybeDefinition, MachineDefinition.$$Self>, undefined>
-        : MaybeDefinition,
+    Definition,
     Precomputed = MachineDefinition.Precomputed.Of<Definition>, // TODO: reuse from definition
-    I = U.ToIntersection<WithRoot<Definition, Precomputed, []>>
+    _I = U.ToIntersection<WithRoot<Definition, Precomputed, []>>,
+    I = U.ToIntersection<
+      { [K in keyof _I]:
+          [keyof _I[K]] extends [never]
+            ? { [_ in K]?: _I[K] }
+            : { [_ in K]: _I[K] }
+      }[keyof _I]
+    >
   > =
-    { [T in keyof I as [keyof I[T]] extends [never] ? never : T]:
-        { [K in keyof I[T]]: I[T][K] }
-    }
+    { [T in keyof I]: { [K in keyof I[T]]: I[T][K] } }
+    
 
   type WithRoot<
     Definition,
@@ -25,7 +27,9 @@ namespace MachineImplementations {
     Root = A.Get<Definition, RootPath>
   > =
     | ( "action" | "guard" extends infer ExecableType ? ExecableType extends any ?
-        keyof A.Get<Root, "on"> extends infer E ? E extends any ?
+        keyof A.Get<Root, "on"> extends infer E ?
+          [E] extends [never] ? { actions: {} } | { guards: {} } :
+          E extends any ?
         A.Get<
           MachineDefinition.Transition.Desugar<A.Get<Root, ["on", E]>>,
           [ number
@@ -37,25 +41,27 @@ namespace MachineImplementations {
             never
           , "type"
           ]
-        > extends infer I ? I extends any ?
+        > extends infer I ?
+          I extends undefined ? {} :
+          I extends any ?
             { [_ in `${S.Assert<ExecableType>}s`]:
-                I extends undefined ? {} :
                 { [_ in S.Assert<I>]:
-                    ExecableType extends "action"
-                      ? MachineDefinition.Execable.OfWithContextEvent<
-                          Definition, L.Concat<RootPath, ["on", "actions"]>, Precomputed,
-                          Machine.Context.Of<Definition, Precomputed>,
-                          U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: E }>,
-                          "IsAction" | "IsImplementation"
-                        > :
-                    ExecableType extends "guard"
-                      ? MachineDefinition.Execable.OfWithContextEvent<
-                          Definition, L.Concat<RootPath, ["on", "guard"]>, Precomputed,
-                          Machine.Context.Of<Definition, Precomputed>,
-                          U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: E }>,
-                          "IsGuard" | "IsImplementation"
-                        > :
-                    never
+                    MachineDefinition.Execable.OfWithContextEvent<
+                      Definition,
+                      L.Concat<RootPath, ["on",
+                        ExecableType extends "action" ? "actions" :
+                        ExecableType extends "guard" ? "guard" :
+                        never
+                      ]>,
+                      Precomputed,
+                      Machine.Context.Of<Definition, Precomputed>,
+                      U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: E }>,
+                      | ( ExecableType extends "action" ? "IsAction" :
+                          ExecableType extends "guard" ? "IsGuard" :
+                          never
+                        )
+                      | "IsImplementation"
+                    >
                 }
             }
         : never : never : never : never : never : never
