@@ -117,6 +117,8 @@ export namespace A {
             F.Parameters<T, F> :
           K1 extends Get.Called ?
             F.Called<T, F> :
+          K1 extends Get.Identity ?
+            Get<T, [], F> :
           K1 extends keyof T ?
             Get<T[K1], Kr, F> extends infer X ? A.Cast<X, any> : never :
           F :
@@ -129,6 +131,9 @@ export namespace A {
 
     declare const Called: unique symbol;
     export type Called = typeof Called;
+
+    declare const Identity: unique symbol;
+    export type Identity = typeof Identity;
   }
 
   export type InferNarrowest<T> =

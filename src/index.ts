@@ -1,11 +1,23 @@
+import { F } from "../publish/extras";
 import { UnknownActorRef } from "./Actor";
 import { A } from "./extras";
 import Machine from "./Machine";
 import MachineDefinition from "./MachineDefinition";
+import MachineImplementations from "./MachineImplementations";
 
-export declare const createMachine:
-  <D extends MachineDefinition.Of<D>>(definition: A.InferNarrowestObject<D>) =>
-    Machine.Of<D>
+export declare const createMachine: {
+  <D extends MachineDefinition.Of<D>>
+    (definition: A.InferNarrowestObject<D>):
+      Machine.Of<D, {}>
+  
+  < D extends MachineDefinition.Of<D>
+  , I extends MachineImplementations.Of<D>>
+    ( definition: A.InferNarrowestObject<D>
+    , implementations: I
+    ):
+      Machine.Of<D, I>
+}
+  
  
 export declare const createSchema: <T>() => T
 export declare const send: Machine.SendAction.Creator;

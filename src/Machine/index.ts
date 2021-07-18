@@ -5,13 +5,11 @@ import { ReferencePathString } from "../universal";
 export default Machine;
 namespace Machine {
   export type Of<
-    MaybeDefinition, // in an machine with error this would be MachineDefinition.Of<D> otherwise it'll be D
-    Definition =
-      MaybeDefinition extends { [MachineDefinition.$$Self]: unknown }
-        ? U.Exclude<A.Get<MaybeDefinition, MachineDefinition.$$Self>, undefined>
-        : MaybeDefinition
+    Definition,
+    Implementations,
     > =
       { config: Definition
+      , options: Implementations
       }
 
 
@@ -19,7 +17,8 @@ namespace Machine {
     export type Of<
       Definition,
       Precomputed,
-      EventSchema = Schema.Of<Definition, Precomputed>
+      Flags = never,
+      EventSchema = Schema.Of<Definition, Precomputed, Flags>
     > =
       EventSchema extends undefined
         ? WithRoot<Definition>
@@ -38,8 +37,10 @@ namespace Machine {
         )
 
     export namespace Schema {
-      export type Of<Definition, Precomputed> =
-        Definition extends { schema?: { events?: infer E } } ? E : undefined
+      export type Of<Definition, Precomputed, Flags = never> =
+        "UseInferForSchema" extends Flags
+          ? Definition extends { schema?: { events?: infer E } } ? E : undefined
+          : A.Get<Definition, ["schema", "events"]>
     }
 
     export namespace ForEntry {
@@ -186,11 +187,6 @@ namespace Machine {
       export type OfWithAdjacentAction<Definition, Precomputed, Action> =
         SendAction.InferralHint.OfWithAdjacentAction<Definition, Precomputed, Action>
     }
-    
-
-    export type IsOne<T> =
-      T extends { type: "xstate.send" } ? true :
-      false
   }
 
   export namespace SendAction {
@@ -233,7 +229,7 @@ namespace Machine {
         export type Of<
           Definition,
           Precomputed,
-          Event = Machine.Event.Of<Definition, Precomputed>
+          Event = Machine.Event.Of<Definition, Precomputed, "UseInferForSchema">
         > =
           Event extends any
             ? | [event: Event]
@@ -272,10 +268,18 @@ namespace Machine {
     export type Of<
       Definition,
       Precomputed,
-      ContextSchema = Definition extends { schema?: { context?: infer C } } ? C : undefined
+      Flags = never,
+      ContextSchema = Schema.Of<Definition, Precomputed, Flags>
     > =
       ContextSchema extends undefined
         ? A.Get<Definition, "context">
         : ContextSchema
+
+    export namespace Schema {
+      export type Of<Definition, Precomputed, Flags = never> =
+        "UseInferForSchema" extends Flags
+          ? Definition extends { schema?: { context?: infer C } } ? C : undefined
+          : A.Get<Definition, ["schema", "context"]>
+    }
   }
 }

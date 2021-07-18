@@ -378,7 +378,7 @@ namespace MachineDefinition {
                     ? T extends A.Tuple ? T : [T]
                     : never
               , internal: A.Get<Ts[K], "internal">
-              , guard: A.Get<Ts[K], "guard", () => true>
+              , guard: A.Get<Ts[K], "guard"> // TODO: desugar
               , actions: Execable.Desugar<A.Get<Ts[K], "actions">, "actions">
               } extends infer Target
                 ? O.Update<Target, {
@@ -533,19 +533,21 @@ namespace MachineDefinition {
       Flags = never,
       Self = A.Get<Definition, Path>
     > =
-      | ( "IsGuard" extends Flags ? never :
-        | [ Unit<
-              Definition, L.Pushed<Path, 0>, Precomputed,
-              Context, Event, "IsTupleElement" | Flags
-            >
-          ]
-        | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
-            { [K in keyof Self]:
-                Unit<
-                  Definition, L.Pushed<Path, K>, Precomputed,
-                  Context, Event, "IsTupleElement" | Flags
-                >
-            }
+      | ( "IsImplementation" extends Flags ? never :
+          ( "IsGuard" extends Flags ? never :
+          | [ Unit<
+                Definition, L.Pushed<Path, 0>, Precomputed,
+                Context, Event, "IsTupleElement" | Flags
+              >
+            ]
+          | ( Self extends { type: unknown } | [{ type: unknown }] ? never :
+              { [K in keyof Self]:
+                  Unit<
+                    Definition, L.Pushed<Path, K>, Precomputed,
+                    Context, Event, "IsTupleElement" | Flags
+                  >
+              }
+            )
           )
         )
       | Unit<Definition, Path, Precomputed, Context, Event, Flags>
@@ -556,7 +558,7 @@ namespace MachineDefinition {
       Flags = never,
       Self = A.Get<Definition, Path>
     > =
-      | S.InferNarrowest<Self>
+      | ( "IsImplementation" extends Flags ? never : S.InferNarrowest<Self> )
       | ( "IsAction" extends Flags
             ? Machine.XstateAction.InferralHint.OfWithAdjacentAction<
                 Definition, Precomputed,
@@ -570,7 +572,10 @@ namespace MachineDefinition {
             ? (context: Context, event: Event, meta: "TODO") => boolean :
           (context: Context, event: Event, meta: "TODO") => unknown
         )
-      | ( { type: S.InferNarrowest<A.Get<Self, "type">>
+      | ( { type:
+              "IsImplementation" extends Flags
+                ? A.String
+                : S.InferNarrowest<A.Get<Self, "type">>
           , exec?:
               ( context: Context
               , event: Event
