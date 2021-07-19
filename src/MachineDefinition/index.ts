@@ -605,12 +605,13 @@ namespace MachineDefinition {
         : never
   }
 
-  namespace Invocation {
+  export namespace Invocation {
     export type OfWithStateNodePath<
       Definition,
       Path,
       Precomputed,
       StateNodePath,
+      Flags = never,
       Self = A.Get<Definition, Path>
     > =
       | [ Unit<Definition, L.Pushed<Path, 0>, Precomputed, StateNodePath> ]
@@ -627,7 +628,7 @@ namespace MachineDefinition {
       StateNodePath,
       Self = A.Get<Definition, Path>,
       Context = Machine.Context.Of<Definition, Precomputed>,
-      Event = Machine.Event.Of<Definition, Precomputed>
+      Event = Machine.Event.ForEntry.OfWithStateNodePath<Definition, Precomputed, StateNodePath>
     > =
       | S.InferNarrowest<Self>
       | ( ( context: Context
@@ -668,5 +669,28 @@ namespace MachineDefinition {
             >
         }
 
+    export type Desugar<Is> =
+      ( Is extends undefined ? [] :
+        Is extends A.Tuple ? Is : [Is]
+      ) extends infer Is
+        ? { [K in keyof Is]:
+              ( Is[K] extends A.String ? { src: { type: Is[K] } } :
+                Is[K] extends A.Function ? { src: Is[K] } :
+                Is[K]
+              ) extends infer I
+                ? { src:
+                      A.Get<I, "src"> extends infer Src
+                        ? Src extends A.String ? { type: Src } :
+                          Src
+                        : never
+                  , id: A.Get<I, "id">
+                  , autoForward: A.Get<I, "autoForward", false>
+                  , data: A.Get<I, "data">
+                  , onDone: Transition.Desugar<A.Get<I, "onDone">>
+                  , onError: Transition.Desugar<A.Get<I, "onError">>
+                  }
+                : never
+          }
+        : never
   }
 }

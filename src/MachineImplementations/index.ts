@@ -1,5 +1,5 @@
-import { L } from "../../publish/extras";
-import { A, U, S } from "../extras";
+import { UnknownBehavior } from "../Behavior";
+import { A, U, S, L } from "../extras";
 import Machine from "../Machine";
 import MachineDefinition from "../MachineDefinition";
 
@@ -23,15 +23,18 @@ namespace MachineImplementations {
   type WithRoot<
     Definition,
     Precomputed,
-    RootPath,
-    Root = A.Get<Definition, RootPath>
+    RootNodePath,
+    RootNode = A.Get<Definition, RootNodePath>,
+    Context = Machine.Context.Of<Definition, Precomputed>,
+    UniversalEvent = Machine.Event.Of<Definition, Precomputed>,
+    EntryEvent = Machine.Event.ForEntry.OfWithStateNodePath<Definition, Precomputed, RootNodePath>
   > =
     | ( "action" | "guard" extends infer ExecableType ? ExecableType extends any ?
-        keyof A.Get<Root, "on"> extends infer E ?
+        keyof A.Get<RootNode, "on"> extends infer E ?
           [E] extends [never] ? { actions: {} } | { guards: {} } :
           E extends any ?
         A.Get<
-          MachineDefinition.Transition.Desugar<A.Get<Root, ["on", E]>>,
+          MachineDefinition.Transition.Desugar<A.Get<RootNode, ["on", E]>>,
           [ number
           , ExecableType extends "action" ? "actions" :
             ExecableType extends "guard" ? "guard" :
@@ -48,14 +51,14 @@ namespace MachineImplementations {
                 { [_ in S.Assert<I>]:
                     MachineDefinition.Execable.OfWithContextEvent<
                       Definition,
-                      L.Concat<RootPath, ["on",
+                      L.Concat<RootNodePath, ["on",
                         ExecableType extends "action" ? "actions" :
                         ExecableType extends "guard" ? "guard" :
                         never
                       ]>,
                       Precomputed,
-                      Machine.Context.Of<Definition, Precomputed>,
-                      U.Extract<Machine.Event.Of<Definition, Precomputed>, { type: E }>,
+                      Context,
+                      U.Extract<UniversalEvent, { type: E }>,
                       | ( ExecableType extends "action" ? "IsAction" :
                           ExecableType extends "guard" ? "IsGuard" :
                           never
@@ -66,9 +69,26 @@ namespace MachineImplementations {
             }
         : never : never : never : never : never : never
       )
-    | ( [keyof A.Get<Root, "states">] extends [never] ? never :
-        { [S in keyof A.Get<Root, "states">]:
-            WithRoot<Definition, Precomputed,L.Concat<RootPath, ["states", S]>>
-        }[keyof A.Get<Root, "states">]
+    | ( A.Get<
+          MachineDefinition.Invocation.Desugar<A.Get<RootNode, "invoke">>,
+          [number, "src", "type"]
+        > extends infer I
+          ? S.IsLiteral<I> extends false ? { behaviors: {} } :
+            I extends any
+              ? { behaviors:
+                  { [_ in S.Assert<I>]:
+                      ( context: Context
+                      , event: EntryEvent
+                      , meta: "TODO"
+                      ) => UnknownBehavior
+                  }
+                }
+              : never
+          : never
+        )
+    | ( [keyof A.Get<RootNode, "states">] extends [never] ? never :
+        { [S in keyof A.Get<RootNode, "states">]:
+            WithRoot<Definition, Precomputed,L.Concat<RootNodePath, ["states", S]>>
+        }[keyof A.Get<RootNode, "states">]
       )
 }

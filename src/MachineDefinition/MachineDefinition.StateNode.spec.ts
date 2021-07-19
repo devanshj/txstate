@@ -281,7 +281,7 @@ createMachine({
         (c, e) => {
           A.tests([
             A.areEqual<typeof c, { foo: number }>(),
-            A.areEqual<typeof e, { type: "X" }>()
+            A.areEqual<typeof e, { type: "X" } | { type: "xstate.init" }>()
           ])
         }
       ],

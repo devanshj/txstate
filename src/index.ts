@@ -1,4 +1,4 @@
-import { UnknownActorRef } from "./Behavior";
+import { Behavior, UnknownActorRef } from "./Behavior";
 import { A } from "./extras";
 import Machine from "./Machine";
 import MachineDefinition from "./MachineDefinition";
@@ -36,4 +36,8 @@ export declare namespace SCXML {
     , data: E
     , $$type: "scxml"
     }
+}
+
+export declare const createBehaviorFrom: {
+  <T>(x: PromiseLike<T>): Behavior<never, T>
 }
