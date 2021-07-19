@@ -1,5 +1,4 @@
-import { F } from "../publish/extras";
-import { UnknownActorRef } from "./Actor";
+import { UnknownActorRef } from "./Behavior";
 import { A } from "./extras";
 import Machine from "./Machine";
 import MachineDefinition from "./MachineDefinition";

@@ -1,4 +1,4 @@
-import { UnknownActor } from "../Actor";
+import { UnknownBehavior } from "../Behavior";
 import { O, A, U, L, B, S, F } from "../extras";
 import Machine from "../Machine";
 import { ReferencePathString } from "../universal";
@@ -632,7 +632,7 @@ namespace MachineDefinition {
       | S.InferNarrowest<Self>
       | ( ( context: Context
           , event: Event
-          ) => UnknownActor
+          ) => UnknownBehavior
         )
       | { src?:
             | S.InferNarrowest<A.Get<Self, "src">>
@@ -642,7 +642,7 @@ namespace MachineDefinition {
             | ( ( context: Context
                 , event: Event
                 , meta: "TODO"
-                ) => UnknownActor
+                ) => UnknownBehavior
               )
         , id?: S.InferNarrowest<A.Get<Self, "id">>
         , autoForward?: boolean
