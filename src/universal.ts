@@ -64,15 +64,13 @@ export namespace ReferencePathString {
 
     export namespace Unresolved {
       export type ResolveWithStateNode<
-        Definition,
-        Precomputed,
+        Global,
         TargetPathStringTuple,
         StateReferencePathString
       > = {
         [I in keyof TargetPathStringTuple]:
           ReferencePathString.Unresolved.ResolveWithStateNode<
-            Definition,
-            Precomputed,
+            Global,
             TargetPathStringTuple[I],
             StateReferencePathString
           >
@@ -82,12 +80,12 @@ export namespace ReferencePathString {
 
   export namespace Unresolved {
     export type ResolveWithStateNode<
-      Definition,
-      Precomputed,
+      Global,
       TargetPathString,
       StateReferencePathString,
       ParentStateReferencePathString = Parent<StateReferencePathString>,
-
+      
+      Definition = A.Get<Global, "Definition">,
       SiblingStateIdentifier =
         StateReferencePathString extends "" ? never :
         keyof A.Get<ReferencePathString.ToNode<ParentStateReferencePathString, Definition>, "states">,
@@ -100,14 +98,14 @@ export namespace ReferencePathString {
           ? S.DoesContain<TargetPathString, "."> extends B.True
               ? TargetPathString extends `#${infer Id}.${infer RestPath}`
                   ? O.KeyWithValue<
-                      O.Assert<MachineDefinition.Precomputed.Get<Precomputed, "IdMap">>,
+                      O.Assert<MachineDefinition.Precomputed.FromGlobal<Global, "IdMap">>,
                       Id
                     > extends infer IdNodePath
                       ? ReferencePathString.Append<IdNodePath, RestPath>
                       : never
                   : never
               : O.KeyWithValue<
-                  O.Assert<MachineDefinition.Precomputed.Get<Precomputed, "IdMap">>,
+                  O.Assert<MachineDefinition.Precomputed.FromGlobal<Global, "IdMap">>,
                   S.Shifted<TargetPathString>
                 > :
         // relative children

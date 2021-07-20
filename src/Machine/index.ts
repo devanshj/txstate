@@ -5,23 +5,21 @@ import { ReferencePathString } from "../universal";
 export default Machine;
 namespace Machine {
   export type Of<
-    Definition,
-    Implementations,
-    > =
-      { config: Definition
-      , options: Implementations
+    Global
+  > =
+      { config: A.Get<Global, "Definition">
+      , options: A.Get<Global, "Implementations">
       }
 
 
   export namespace Event {
     export type Of<
-      Definition,
-      Precomputed,
+      Global,
       Flags = never,
-      EventSchema = Schema.Of<Definition, Precomputed, Flags>
+      EventSchema = Schema.Of<Global, Flags>
     > =
       EventSchema extends undefined
-        ? WithRoot<Definition>
+        ? WithRoot<A.Get<Global, "Definition">>
         : EventSchema
 
     type WithRoot<Root> =
@@ -37,7 +35,7 @@ namespace Machine {
         )
 
     export namespace Schema {
-      export type Of<Definition, Precomputed, Flags = never> =
+      export type Of<Global, Flags = never, Definition = A.Get<Global, "Definition">> =
         "UseInferForSchema" extends Flags
           ? Definition extends { schema?: { events?: infer E } } ? E : undefined
           : A.Get<Definition, ["schema", "events"]>
@@ -45,28 +43,26 @@ namespace Machine {
 
     export namespace ForEntry {
       export type OfWithStateNodePath<
-        Definition,
-        Precomputed,
+        Global,
         StateNodePath,
-        DesugaredDefinition = MachineDefinition.Precomputed.Get<Precomputed, "DesugaredDefinition">
+        
       > =
-        WithRootPath<DesugaredDefinition, Precomputed, StateNodePath, []>
+        WithRootPath<Global, StateNodePath, []>
     
       type WithRootPath<
-        DesugaredDefinition,
-        Precomputed,
+        Global,
         StateNodePath,
         RootPath,
 
-        
+        DesugaredDefinition = MachineDefinition.Precomputed.FromGlobal<Global, "DesugaredDefinition">,
         Root = A.Get<DesugaredDefinition, RootPath>,
         StateNodeReferencePathString = ReferencePathString.FromDefinitionPath<StateNodePath>,
         RootReferencePathString = ReferencePathString.FromDefinitionPath<RootPath>,
         On = A.Get<Root, "on">,
         Always = A.Get<Root, "always">,
         States = A.Get<Root, "states">,
-        EventSchema = Schema.Of<DesugaredDefinition, Precomputed>,
-        InitialState = MachineDefinition.Precomputed.Get<Precomputed, "InitialStateNodeReferencePathString">
+        EventSchema = Schema.Of<Global>,
+        InitialState = MachineDefinition.Precomputed.FromGlobal<Global, "InitialStateNodeReferencePathString">
       > =
         | { [E in keyof On]: 
             A.Get<On, [E, number]> extends infer T
@@ -74,7 +70,7 @@ namespace Machine {
                 T extends any
                   ? ( L.IncludesSubtype<
                         ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                          DesugaredDefinition, Precomputed, A.Get<T, "target">, RootReferencePathString
+                          Global, A.Get<T, "target">, RootReferencePathString
                         >,
                         | StateNodeReferencePathString 
                         | ( A.Get<T, "internal"> extends false
@@ -93,7 +89,7 @@ namespace Machine {
               ? [T] extends [never] ? never :
                 L.IncludesSubtype<
                   ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                    DesugaredDefinition, Precomputed, A.Get<T, "target">, RootReferencePathString
+                    Global, A.Get<T, "target">, RootReferencePathString
                   >,
                   | StateNodeReferencePathString
                   | ( A.Get<T, "internal"> extends false
@@ -101,14 +97,14 @@ namespace Machine {
                         : never
                     )
                 > extends true
-                  ? OfWithStateNodePath<DesugaredDefinition, Precomputed, RootPath>
+                  ? OfWithStateNodePath<Global, RootPath>
                   : never
               : never
           )
         | ( [keyof States] extends [never] ? never :
             { [C in keyof States]:
                 WithRootPath<
-                  DesugaredDefinition, Precomputed, StateNodePath,
+                  Global, StateNodePath,
                   L.Concat<RootPath, ["states", C]>
                 >
             }[keyof States]
@@ -121,22 +117,21 @@ namespace Machine {
 
     export namespace ForExit {
       export type OfWithStateNodePath<
-        Definition,
-        Precomputed,
+        Global,
         StateNodePath
       > =
         // TODO
-        Machine.Event.Of<Definition, Precomputed>
+        Machine.Event.Of<Global>
     }
 
     export namespace ForDone {
       export type OfWithStateNodePath<
-        Definition,
-        Precomputed,
+        Global,
         StateNodePath,
+        Definition = A.Get<Global, "Definition">,
         Data = A.Get<Definition, L.Pushed<StateNodePath, "data">>
       > =
-        & Machine.Event.Of<Definition, Precomputed> // TODO
+        & Machine.Event.Of<Global> // TODO
         & { data:
               Data extends undefined ? undefined :
               Data extends A.Function ? F.Called<Data> :
@@ -152,10 +147,11 @@ namespace Machine {
   }
 
   export namespace InitialStateNodeReferencePathString {
-    export type Of<Definition, Precomputed> =
-      WithRoot<Definition, Precomputed, "">;
+    export type Of<Global> =
+      WithRoot<Global, "">;
 
-    type WithRoot<Definition, Precomputed, Root,
+    type WithRoot<Global, Root,
+      Definition = A.Get<Global, "Definition">,
       Node = ReferencePathString.ToNode<Root, Definition>,
       Initial = A.Get<Node, "initial">,
       ChildState = keyof A.Get<Node, "states">,
@@ -163,20 +159,20 @@ namespace Machine {
     > =
       | ( Initial extends A.String
           ? | ReferencePathString.Append<Root, Initial>
-            | WithRoot<Definition, Precomputed, ReferencePathString.Append<Root, Initial>>
+            | WithRoot<Global, ReferencePathString.Append<Root, Initial>>
           : [ChildState] extends [never] ? never :
             ChildState extends any
               ? | ReferencePathString.Append<Root, ChildState>
-                | WithRoot<Definition, Precomputed, ReferencePathString.Append<Root, ChildState>>
+                | WithRoot<Global, ReferencePathString.Append<Root, ChildState>>
               : never
         )
       | { [I in keyof Always]:
           A.Get<ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-            Definition, Precomputed, A.Get<Always[I], "target">, Root
+            Global, A.Get<Always[I], "target">, Root
           >, number> extends infer T
             ? [T] extends [never] ? never :
               T extends any
-                ? WithRoot<Definition, Precomputed, T>
+                ? WithRoot<Global, T>
                 : never
             : never
         }[keyof Always]
@@ -184,16 +180,15 @@ namespace Machine {
 
   export namespace XstateAction {
     export namespace InferralHint {
-      export type OfWithAdjacentAction<Definition, Precomputed, Action> =
-        SendAction.InferralHint.OfWithAdjacentAction<Definition, Precomputed, Action>
+      export type OfWithAdjacentAction<Global, Action> =
+        SendAction.InferralHint.OfWithAdjacentAction<Global, Action>
     }
   }
 
   export namespace SendAction {
     export namespace InferralHint {
       export type OfWithAdjacentAction<
-        Definition,
-        Precomputed,
+        Global,
         Action,
         PrecedingParameters = F.Parameters<Action>
       > =
@@ -202,7 +197,7 @@ namespace Machine {
           , meta: A.Get<PrecedingParameters, 2>
           , $$internal:
               MachineDefinition.Internal<
-                Creator.Parameters.Of<Definition, Precomputed>
+                Creator.Parameters.Of<Global>
               >
           ): void
         , type?: "xstate.send"
@@ -227,9 +222,8 @@ namespace Machine {
     export namespace Creator {
       export namespace Parameters {
         export type Of<
-          Definition,
-          Precomputed,
-          Event = Machine.Event.Of<Definition, Precomputed, "UseInferForSchema">
+          Global,
+          Event = Machine.Event.Of<Global, "UseInferForSchema">
         > =
           Event extends any
             ? | [event: Event]
@@ -275,17 +269,17 @@ namespace Machine {
 
   export namespace Context {
     export type Of<
-      Definition,
-      Precomputed,
+      Global,
       Flags = never,
-      ContextSchema = Schema.Of<Definition, Precomputed, Flags>
+      Definition = A.Get<Global, "Definition">,
+      ContextSchema = Schema.Of<Global, Flags>,
     > =
       ContextSchema extends undefined
         ? A.Get<Definition, "context">
         : ContextSchema
 
     export namespace Schema {
-      export type Of<Definition, Precomputed, Flags = never> =
+      export type Of<Global, Flags = never, Definition = A.Get<Global, "Definition">> =
         "UseInferForSchema" extends Flags
           ? Definition extends { schema?: { context?: infer C } } ? C : undefined
           : A.Get<Definition, ["schema", "context"]>

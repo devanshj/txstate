@@ -5,16 +5,32 @@ import MachineDefinition from "./MachineDefinition";
 import MachineImplementations from "./MachineImplementations";
 
 export declare const createMachine: {
-  <D extends MachineDefinition.Of<D>>
+  < D extends
+      MachineDefinition.Of<{
+        Definition: D,
+        Precomputed: P
+      }>
+  , P = MachineDefinition.Precomputed.Of<D>
+  >
     (definition: A.InferNarrowestObject<D>):
-      Machine.Of<D, {}>
+      Machine.Of<{ Definition: D, Precomputed: P }>
   
-  < D extends MachineDefinition.Of<D>
-  , I extends MachineImplementations.Of<D>>
+  < D extends
+      MachineDefinition.Of<{
+        Definition: D,
+        Precomputed: P
+      }>
+  , I extends 
+      MachineImplementations.Of<{
+        Definition: D,
+        Precomputed: P
+      }>
+  , P = MachineDefinition.Precomputed.Of<D>
+  >
     ( definition: A.InferNarrowestObject<D>
     , implementations: I
     ):
-      Machine.Of<D, I>
+      Machine.Of<{ Definition: D, Precomputed: P }>
 }
   
  

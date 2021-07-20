@@ -13,6 +13,9 @@ export namespace O {
 
   export type Omit<T, K> =
     { [P in U.Exclude<keyof T, K>]: T[P] }
+
+  export type Value<T> =
+    T[keyof T]
 }
 
 export namespace L {

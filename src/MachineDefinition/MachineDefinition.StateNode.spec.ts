@@ -4,7 +4,7 @@ import { A } from "../extras";
 createMachine({
   initial: "a",
   context: {},
-  states: { a: {} },
+  states: { a: {} }
 });
 
 
