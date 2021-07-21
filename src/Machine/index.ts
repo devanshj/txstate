@@ -1,4 +1,4 @@
-import { A, U, L, S, O, F } from "../extras";
+import { A, U, L, S, F } from "../extras";
 import MachineDefinition from "../MachineDefinition";
 import { ReferencePathString } from "../universal";
 
@@ -180,89 +180,63 @@ namespace Machine {
 
   export namespace XstateAction {
     export namespace InferralHint {
-      export type OfWithAdjacentAction<Global, Action> =
-        SendAction.InferralHint.OfWithAdjacentAction<Global, Action>
+      export type OfWithAdjacentAction<
+          Global,
+          Action,
+          PrecedingParameters = F.Parameters<Action>
+        > =
+          { ( context: A.Get<PrecedingParameters, 0>
+            , event: A.Get<PrecedingParameters, 1>
+            , meta: A.Get<PrecedingParameters, 2>
+            , __inferralHint: MachineDefinition.Internal<{
+                "Machine.Event": Machine.Event.Of<Global, "UseInferForSchema">
+              }>
+            ): void
+          }
     }
   }
 
   export namespace SendAction {
-    export namespace InferralHint {
-      export type OfWithAdjacentAction<
-        Global,
-        Action,
-        PrecedingParameters = F.Parameters<Action>
-      > =
-        { ( context: A.Get<PrecedingParameters, 0>
-          , event: A.Get<PrecedingParameters, 1>
-          , meta: A.Get<PrecedingParameters, 2>
-          , $$internal:
-              MachineDefinition.Internal<
-                Creator.Parameters.Of<Global>
-              >
-          ): void
-        , type?: "xstate.send"
-        }
-    }
-
-    export type FromInternalAndParameters<Internal, Parameters> =
-      { (context: unknown, event: unknown, meta: unknown, $$internal: Internal): void
-      , type: "xstate.send"
-      , event:
-          A.Get<Parameters, 0> extends string
-            ? { type: A.Get<Parameters, 0> }
-            : A.Get<Parameters, 0>
-      }
-      
     export type Creator =
-      < Internal
-      , Parameters extends Creator.Parameters.FromInternalAndSelf<Internal, Parameters>
-      > (...parameters: Parameters) =>
-        SendAction.FromInternalAndParameters<Internal, A.NoInfer<Parameters>>
+      < InferralHint
+      , Event extends EventWithInferralHint<Event, InferralHint>
+      > (event: Event) =>
+        { (context: unknown, event: unknown, meta: unknown, __inferralHint: InferralHint): void
+        , type: "xstate.send"
+        , event: Event extends A.String ? { type: Event } : Event
+        }
 
-    export namespace Creator {
-      export namespace Parameters {
-        export type Of<
-          Global,
-          Event = Machine.Event.Of<Global, "UseInferForSchema">
-        > =
-          Event extends any
-            ? | [event: Event]
-              | ( { type: A.Get<Event, "type"> } extends Event
-                    ? [event: A.Get<Event, "type">]
-                    : never
-                )
+
+    export type EventWithInferralHint<
+      Self,
+      InferralHint,
+      SpecEvent = A.Get<InferralHint, [MachineDefinition.$$Internal, "Machine.Event"]>,
+      SpecEventType =
+        SpecEvent extends any
+          ? { type: A.Get<SpecEvent, "type"> } extends SpecEvent
+              ? A.Get<SpecEvent, "type">
+              : never
+          : never
+    > =
+      | ( SpecEventType extends any
+            ? S.InferNarrowest<SpecEventType>
             : never
-
-        export type FromInternalAndSelf<
-          Internal,
-          Self,
-          Parameters = A.Get<Internal, [MachineDefinition.$$Internal]>,
-          SpecEventType = U.Extract<A.Get<Parameters, 0>, A.String>,
-          SpecEvent = U.Exclude<A.Get<Parameters, 0>, A.String>
-        > =
-          [ event:
-          | ( SpecEventType extends any
-                ? S.InferNarrowest<SpecEventType>
-                : never
-            )
-          | ( { type:
-                  S.IsLiteral<A.Get<Self, [0, "type"]>> extends true
-                    ? A.Get<Self, [0, "type"]> extends A.Get<SpecEvent, "type">
-                        ? S.InferNarrowest<A.Get<Self, [0, "type"]>>
-                        : S.InferNarrowest<A.Get<SpecEvent, "type">>
+        )
+      | ( { type:
+              S.IsLiteral<A.Get<Self, "type">> extends true
+                ? A.Get<Self, "type"> extends A.Get<SpecEvent, "type">
+                    ? S.InferNarrowest<A.Get<Self, "type">>
                     : S.InferNarrowest<A.Get<SpecEvent, "type">>
-              }
-            & ( U.Extract<SpecEvent, { type: A.Get<Self, [0, "type"]> }> extends infer E
-                  ? [E] extends [never] ? {} :
-                    E extends any
-                      ? { [K in keyof E as U.Exclude<K, "type">]: E[K] }
-                      : never
+                : S.InferNarrowest<A.Get<SpecEvent, "type">>
+          }
+        & ( U.Extract<SpecEvent, { type: A.Get<Self, "type"> }> extends infer E
+              ? [E] extends [never] ? {} :
+                E extends any
+                  ? { [K in keyof E as U.Exclude<K, "type">]: E[K] }
                   : never
-              )
-            )
-          ]
-      }
-    }
+              : never
+          )
+        )
   }
 
   
