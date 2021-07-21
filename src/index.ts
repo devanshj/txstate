@@ -36,6 +36,7 @@ export declare const createMachine: {
  
 export declare const createSchema: <T>() => T
 export declare const send: Machine.SendAction.Creator;
+export declare const assign: Machine.AssignAction.Creator;
 
 export interface UnknownEvent
   { type: string

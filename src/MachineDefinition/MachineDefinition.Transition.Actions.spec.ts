@@ -1,4 +1,4 @@
-import { createMachine, createSchema, send } from ".."
+import { assign, createMachine, createSchema, send } from ".."
 import { A, U } from "../extras"
 
 let t0 = createMachine({
@@ -235,6 +235,44 @@ createMachine({
       },
       on: {
         X: "a"
+      }
+    }
+  }
+})
+
+createMachine({
+  schema: {
+    events: {} as { type: "X" } | { type: "Y" }
+  },
+  context: { foo: 1 },
+  initial: "a",
+  states: {
+    a: {
+      on: {
+        X: {
+          target: "a",
+          actions: [assign({
+            foo: (x, e) => {
+              A.tests([
+                A.areEqual<typeof x, number>(),
+                A.areEqual<typeof e, { type: "X" }>(),
+              ])
+              return x + 1
+            }
+          }),
+            assign(
+              // @ts-expect-error
+              (c, e) => {
+                A.tests([
+                  A.areEqual<typeof c, { foo: number }>(),
+                  A.areEqual<typeof e, { type: "X" }>(),
+                ])
+
+                return "";
+              }
+            )
+          ]
+        }
       }
     }
   }

@@ -192,8 +192,37 @@ namespace Machine {
                 "Machine.Event": Machine.Event.Of<Global, "UseInferForSchema">
               }>
             ): void
+          , type?:
+              | "xstate.assign"
+              | "xstate.send"
           }
     }
+  }
+
+  export namespace AssignAction {
+    export type Creator =
+      { < C
+        , E
+        , A extends (context: C, event: E) => C
+        >
+          ( assignment: A
+          ):
+            { (context: C, event: E, meta: unknown, __inferralHint: unknown): void
+            , type: "xstate.assign"
+            , assignment: A
+            }
+
+        < C
+        , E
+        , A extends { [K in keyof C]: (context: C[K], event: E) => C[K] }
+        >
+          ( assignment: A
+          ):
+            { (context: C, event: E, meta: unknown, __inferralHint: unknown): void
+            , type: "xstate.assign"
+            , assignment: A
+            }
+      }
   }
 
   export namespace SendAction {
@@ -207,7 +236,7 @@ namespace Machine {
         }
 
 
-    export type EventWithInferralHint<
+    type EventWithInferralHint<
       Self,
       InferralHint,
       SpecEvent = A.Get<InferralHint, [MachineDefinition.$$Internal, "Machine.Event"]>,

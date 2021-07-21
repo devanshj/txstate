@@ -87,7 +87,7 @@ namespace MachineDefinition {
       EventIdentifierSpec = A.Get<Definition, ["schema", "events", "type"], never>,
       IsAfterRecord = A.DoesExtend<A.Get<Self, ["after", "length"]>, undefined>,
       Context = Machine.Context.Of<Global>,
-      Event = Machine.Event.Of<Global>
+      Event = Machine.Event.Of<Global, "UseInferForSchema">
     > =
       & { type?:
           | "compound"
@@ -554,18 +554,14 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>
     > =
       | ( "IsImplementation" extends Flags ? never : S.InferNarrowest<Self> )
-      | ( "IsAction" extends Flags
-            ? Machine.XstateAction.InferralHint.OfWithAdjacentAction<
+      | ( Machine.XstateAction.InferralHint.OfWithAdjacentAction<
                 Global,
                 ( ( context: Context
                   , event: Event
                   , meta: "TODO"
                   ) => unknown
                 )
-              > :
-          "IsGuard" extends Flags
-            ? (context: Context, event: Event, meta: "TODO") => boolean :
-          (context: Context, event: Event, meta: "TODO") => unknown
+              >
         )
       | ( { type:
               "IsImplementation" extends Flags
