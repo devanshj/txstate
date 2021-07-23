@@ -87,18 +87,20 @@ namespace Machine {
           }[keyof On]
         | ( A.Get<Always, number> extends infer T
               ? [T] extends [never] ? never :
-                L.IncludesSubtype<
-                  ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
-                    Global, A.Get<T, "target">, RootReferencePathString
-                  >,
-                  | StateNodeReferencePathString
-                  | ( A.Get<T, "internal"> extends false
-                        ? ReferencePathString.Child<StateNodeReferencePathString, DesugaredDefinition>
-                        : never
-                    )
-                > extends true
-                  ? OfWithStateNodePath<Global, RootPath>
-                  : never
+                T extends any
+                  ? L.IncludesSubtype<
+                    ReferencePathString.Tuple.Unresolved.ResolveWithStateNode<
+                      Global, A.Get<T, "target">, RootReferencePathString
+                    >,
+                    | StateNodeReferencePathString
+                    | ( A.Get<T, "internal"> extends false
+                          ? ReferencePathString.Child<StateNodeReferencePathString, DesugaredDefinition>
+                          : never
+                      )
+                  > extends true
+                    ? OfWithStateNodePath<Global, RootPath>
+                    : never
+                : never
               : never
           )
         | ( [keyof States] extends [never] ? never :

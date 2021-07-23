@@ -224,7 +224,7 @@ namespace MachineDefinition {
       , onDone: Transition.Desugar<A.Get<N, "onDone">>
       , entry: Execable.Desugar<A.Get<N, "entry">, "entry">
       , exit: Execable.Desugar<A.Get<N, "exit">, "exit">
-      , invoke: A.Get<N, "invoke"> // TODO desugar
+      , invoke: Invocation.Desugar<A.Get<N, "invoke">>
       , id: A.Get<N, "id">
       , order: A.Get<N, "order">
       , meta: A.Get<N, "meta">
@@ -373,8 +373,9 @@ namespace MachineDefinition {
                     ? T extends A.Tuple ? T : [T]
                     : never
               , internal: A.Get<Ts[K], "internal">
-              , guard: A.Get<Ts[K], "guard"> // TODO: desugar
+              , guard: Execable.Desugar<A.Get<Ts[K], "guard">, "guard">
               , actions: Execable.Desugar<A.Get<Ts[K], "actions">, "actions">
+              , delay: A.Get<Ts[K], "delay">
               } extends infer Target
                 ? O.Update<Target, {
                     internal: L.Every<{ [I in keyof A.Get<Target, "target">]: 
