@@ -555,14 +555,18 @@ namespace MachineDefinition {
       Self = A.Get<Definition, Path>
     > =
       | ( "IsImplementation" extends Flags ? never : S.InferNarrowest<Self> )
-      | ( Machine.XstateAction.InferralHint.OfWithAdjacentAction<
+      | ( "IsAction" extends Flags
+            ? Machine.XstateAction.InferralHint.OfWithAdjacentAction<
                 Global,
                 ( ( context: Context
                   , event: Event
                   , meta: "TODO"
                   ) => unknown
                 )
-              >
+              > :
+          "IsGuard" extends Flags
+            ? (context: Context, event: Event, meta: "TODO") => boolean :
+          (context: Context, event: Event, meta: "TODO") => unknown
         )
       | ( { type:
               "IsImplementation" extends Flags
