@@ -1,10 +1,13 @@
 {
   "name": "txstate",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "types": "index.d.ts",
   "devDependencies": {
+    "readline-sync": "^1.4.10",
+    "shelljs": "^0.8.4",
     "typescript": "^4.4.0-beta"
   },
-	"repository": "https://github.com/devanshj/txstate",
-	"author": "Devansh Jethmalani",
-	"license": "MIT"
+  "repository": "https://github.com/devanshj/txstate",
+  "author": "Devansh Jethmalani",
+  "license": "MIT"
 }
