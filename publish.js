@@ -11,4 +11,5 @@ sh.cp("README.md", "dist/README.md");
 sh.cp("package.json", "dist/package.json");
 sh.cd("dist");
 sh.exec("npm publish")
+sh.cd("..")
 sh.rm("-r", "dist")
