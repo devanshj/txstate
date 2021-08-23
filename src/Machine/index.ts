@@ -216,7 +216,7 @@ namespace Machine {
 
         < C
         , E
-        , A extends { [K in keyof C]: (context: C[K], event: E) => C[K] }
+        , A extends { [K in keyof C]?: (context: C[K], event: E) => C[K] }
         >
           ( assignment: A
           ):
