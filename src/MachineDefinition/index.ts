@@ -109,7 +109,6 @@ namespace MachineDefinition {
               >
           }
         )
-      & { __debug?: Definition }
       & { states?:
             Type extends "atomic"
               ? "Error: atomic state node can't have states property"
