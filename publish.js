@@ -17,5 +17,11 @@ sh.echo([
   "*.test.d.ts"
 ].join("\n")).to(".npmignore")
 sh.exec("npm publish")
+sh.exec(`git tag ${
+  sh.cat("package.json")
+  .grep("version")
+  .sed(/.*"version": "(.*)".*/, "v$1")
+  .toString()
+}`)
 sh.cd("..")
 sh.rm("-r", "dist")
