@@ -1,6 +1,5 @@
 {
   "include": ["src/**/*"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
   "compilerOptions": {
     "target": "esnext",
     "module": "commonjs",
@@ -9,6 +8,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "declaration": true,
+    "declaration": true
   }
 }
