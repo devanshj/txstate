@@ -45,6 +45,20 @@ namespace MachineDefinition {
   export type $$Internal = typeof $$Internal;
   export type Internal<T> = { [$$Internal]: T }
 
+  export namespace Global {
+    export type Resolved<Global,
+      Self =
+        A.Get<Global, ["Definition"]> extends { [MachineDefinition.$$Self]?: infer X }
+          ? X
+          : undefined
+    > = 
+      Self extends undefined
+        ? Global
+        : { Definition: Self
+          , Precomputed: Precomputed.Of<Self>
+          }
+  }
+
   export type Desugar<D> =
     & StateNode.Desugar<D, "">
     & { [K in U.Extract<keyof D, "schema" | "context">]: D[K] }

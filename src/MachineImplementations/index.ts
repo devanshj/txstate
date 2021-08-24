@@ -28,7 +28,8 @@ namespace MachineImplementations {
     UniversalEvent = Machine.Event.Of<Global>,
     EntryEvent = Machine.Event.ForEntry.OfWithStateNodePath<Global, RootNodePath>,
     States = A.Get<Root, "states">,
-    On = A.Get<Root, "on">
+    On = A.Get<Root, "on">,
+    Entry = A.Get<Root, "entry">
   > =
     | O.Value<{ [ExecableType in "action" | "guard"]:
         [keyof On] extends [never] ? { actions: {} } | { guards: {} } :
@@ -45,13 +46,13 @@ namespace MachineImplementations {
             , "type"
             ]
           > extends infer I ?
-            S.IsLiteral<I> extends false ? {} :
+            S.IsLiteral<I> extends false ? {} : // TODO: don't capture defaultActionType
             I extends any ?
               { [_ in `${S.Assert<ExecableType>}s`]:
                   { [_ in S.Assert<I>]:
                       MachineDefinition.Execable.OfWithContextEvent<
                         Global,
-                        L.Concat<RootNodePath, ["on",
+                        L.Concat<RootNodePath, ["on", // TODO: should be something like ["on", string
                           ExecableType extends "action" ? "actions" :
                           ExecableType extends "guard" ? "guard" :
                           never
@@ -70,6 +71,21 @@ namespace MachineImplementations {
           : never
         }>
       }>
+    | ( A.Get<MachineDefinition.Execable.Desugar<Entry, string>, [number, "type"]> extends infer I
+          ? S.IsLiteral<I> extends false ? {} :
+            { actions:
+              { [_ in S.Assert<I>]:
+                  MachineDefinition.Execable.OfWithContextEvent<
+                    Global,
+                    L.Concat<RootNodePath, ["entry"]>,
+                    Context,
+                    EntryEvent,
+                    "IsAction" | "IsImplementation"
+                  >
+              }
+            }
+          : never
+      )
     | ( A.Get<
           MachineDefinition.Invocation.Desugar<A.Get<Root, "invoke">>,
           [number, "src", "type"]

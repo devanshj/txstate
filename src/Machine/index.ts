@@ -38,6 +38,7 @@ namespace Machine {
       export type Of<Global, Flags = never, Definition = A.Get<Global, "Definition">> =
         "UseInferForSchema" extends Flags
           ? Definition extends { schema?: { events?: infer E } } ? E : undefined
+          // TODO: return undefined if E is error message
           : A.Get<Definition, ["schema", "events"]>
     }
 
@@ -50,10 +51,11 @@ namespace Machine {
         WithRootPath<Global, StateNodePath, []>
     
       type WithRootPath<
-        Global,
+        _Global,
         StateNodePath,
         RootPath,
 
+        Global = MachineDefinition.Global.Resolved<_Global>,
         DesugaredDefinition = MachineDefinition.Precomputed.FromGlobal<Global, "DesugaredDefinition">,
         Root = A.Get<DesugaredDefinition, RootPath>,
         StateNodeReferencePathString = ReferencePathString.FromDefinitionPath<StateNodePath>,
@@ -205,7 +207,7 @@ namespace Machine {
     export type Creator =
       { < C
         , E
-        , A extends (context: C, event: E) => C
+        , A extends (context: C, event: E) => { [K in keyof C]?: C[K] }
         >
           ( assignment: A
           ):

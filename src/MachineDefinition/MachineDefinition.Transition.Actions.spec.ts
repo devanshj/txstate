@@ -277,3 +277,28 @@ createMachine({
     }
   }
 })
+
+createMachine({
+  context: {
+    activations: 0,
+    reactivations: 0
+  },
+  initial: "inactive",
+  states: {
+    inactive: {
+      on: {
+        ACTIVATE: "active"
+      }
+    },
+    active: {
+      on: {
+        DEACTIVATE: "inactive",
+        REACTIVATE: "active"
+      },
+      entry: assign({
+        activations: (x, e) => e.type === "ACTIVATE" ? x + 1 : x,
+        reactivations: (x, e) => e.type === "REACTIVATE" ? x + 1 : x
+      })
+    }
+  }
+})
