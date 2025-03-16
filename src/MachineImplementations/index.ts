@@ -1,12 +1,13 @@
 import { UnknownBehavior } from "../Behavior";
-import { A, U, S, L, N, O } from "../extras";
+import { A, U, S, L, O } from "../extras";
 import Machine from "../Machine";
 import MachineDefinition from "../MachineDefinition";
 
 export default MachineImplementations;
 namespace MachineImplementations {
   export type Of<
-    Global,
+    _Global,
+    Global = MachineDefinition.Global.Resolved<_Global>,
     _I = U.ToIntersection<WithRoot<Global, []>>,
     I = U.ToIntersection<
       { [K in keyof _I]:
